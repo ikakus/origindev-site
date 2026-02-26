@@ -374,12 +374,11 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
   ctx.fillText('BRIDGE', bMidX, bMidY + 16);
 
   ctx.font = '8px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(184,212,240,0.6)';
-  ctx.textAlign = 'left';
-  ctx.fillText(`${bassScale}mm`, bridgeBassX + 4, bridgeBassY - 5);
+  ctx.fillText(`${bassScale}mm`, bridgeBassX, bridgeBassY + 18);
   ctx.fillStyle = 'rgba(110,200,169,0.6)';
-  ctx.textAlign = 'right';
-  ctx.fillText(`${trebleScale}mm`, bridgeTrebleX - 4, bridgeTrebleY - 5);
+  ctx.fillText(`${trebleScale}mm`, bridgeTrebleX, bridgeTrebleY + 18);
 
   ctx.font = '8px JetBrains Mono, monospace';
   ctx.fillStyle = 'rgba(184,212,240,0.35)';
