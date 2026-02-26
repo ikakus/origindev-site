@@ -109,6 +109,14 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
   const parent = canvas.parentElement;
   const dpr = window.devicePixelRatio || 1;
 
+  // Read CSS variables so canvas respects light/dark theme
+  const style = getComputedStyle(document.body);
+  const cssAccent  = style.getPropertyValue('--accent').trim();
+  const cssAccent2 = style.getPropertyValue('--accent2').trim();
+  const cssMuted   = style.getPropertyValue('--muted').trim();
+  const cssBg      = style.getPropertyValue('--bg').trim();
+  const isLight    = document.body.classList.contains('light');
+
   const padTop    = 30;
   const padBottom = 36;
   const padLeft   = 42;
@@ -164,9 +172,9 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
   const bridgeTrebleX = xTreble + bodyExtra;
 
   const neckGrad = ctx.createLinearGradient(0, Math.min(nutBassY, nutTrebleY), 0, Math.max(bridgeBassY, bridgeTrebleY));
-  neckGrad.addColorStop(0,   '#1e1a12');
-  neckGrad.addColorStop(0.5, '#29221a');
-  neckGrad.addColorStop(1,   '#1a1510');
+  neckGrad.addColorStop(0,   isLight ? '#c8bfa8' : '#1e1a12');
+  neckGrad.addColorStop(0.5, isLight ? '#bdb49c' : '#29221a');
+  neckGrad.addColorStop(1,   isLight ? '#c2b9a2' : '#1a1510');
   ctx.beginPath();
   ctx.moveTo(nutLeft,        nutBassY);
   ctx.lineTo(nutRight,       nutTrebleY);
@@ -176,7 +184,7 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
   ctx.fillStyle = neckGrad;
   ctx.fill();
 
-  ctx.strokeStyle = 'rgba(100,80,50,0.45)';
+  ctx.strokeStyle = isLight ? 'rgba(80,60,30,0.35)' : 'rgba(100,80,50,0.45)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(nutLeft, nutBassY); ctx.lineTo(bridgeBassX, bridgeBassY); ctx.stroke();
@@ -204,7 +212,7 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
     ctx.beginPath();
     ctx.moveTo(sNutX, sNutY);
     ctx.lineTo(sBridgeX, sBridgeY);
-    ctx.strokeStyle = `rgba(220,205,170,${0.1 + t * 0.07})`;
+    ctx.strokeStyle = isLight ? `rgba(80,60,20,${0.15 + t * 0.1})` : `rgba(220,205,170,${0.1 + t * 0.07})`;
     ctx.lineWidth = 0.35 + t * 0.2;
     ctx.stroke();
   }
@@ -237,14 +245,14 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
         ctx.lineTo(stx, sty);
         ctx.lineTo(sbx, sby);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(110,200,169,0.12)';
+        ctx.fillStyle = isLight ? 'rgba(110,200,169,0.18)' : 'rgba(110,200,169,0.12)';
         ctx.fill();
       }
 
       ctx.beginPath();
       ctx.moveTo(sbx, sby);
       ctx.lineTo(stx, sty);
-      ctx.strokeStyle = 'rgba(110,200,169,0.95)';
+      ctx.strokeStyle = cssAccent2;
       ctx.lineWidth = 2;
       ctx.stroke();
     }
@@ -262,10 +270,10 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
     ctx.moveTo(bx, by);
     ctx.lineTo(tx, ty);
     ctx.strokeStyle = isSel
-      ? 'rgba(110,200,169,0.95)'
+      ? cssAccent2
       : isPerp
-        ? 'rgba(200,169,110,0.95)'
-        : 'rgba(185,175,155,0.28)';
+        ? cssAccent
+        : isLight ? 'rgba(80,70,50,0.3)' : 'rgba(185,175,155,0.28)';
     ctx.lineWidth = isSel ? 2 : isPerp ? 2 : 0.85;
     ctx.stroke();
   });
@@ -292,7 +300,7 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
     const dotY = (midBassY + midTrebleY) / 2;
 
     const isPerp  = r.fret === perpFret;
-    const dotColor = isPerp ? 'rgba(200,169,110,0.85)' : 'rgba(210,190,150,0.35)';
+    const dotColor = isPerp ? cssAccent : isLight ? 'rgba(80,70,50,0.3)' : 'rgba(210,190,150,0.35)';
     const dotR = 3;
 
     if (doubleDots.has(r.fret)) {
@@ -314,7 +322,7 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
   ctx.beginPath();
   ctx.moveTo(nutLeft,  nutBassY);
   ctx.lineTo(nutRight, nutTrebleY);
-  ctx.strokeStyle = perpFret === 0 ? '#c8a96e' : '#d4b97a';
+  ctx.strokeStyle = cssAccent;
   ctx.lineWidth = 4;
   ctx.lineCap = 'round';
   ctx.stroke();
@@ -323,11 +331,11 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
   ctx.beginPath();
   ctx.moveTo(bridgeBassX,   bridgeBassY);
   ctx.lineTo(bridgeTrebleX, bridgeTrebleY);
-  ctx.strokeStyle = 'rgba(110,200,169,0.9)';
+  ctx.strokeStyle = cssAccent2;
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  ctx.fillStyle = '#6ec8a9';
+  ctx.fillStyle = cssAccent2;
   [[bridgeBassX, bridgeBassY], [bridgeTrebleX, bridgeTrebleY]].forEach(([x, y]) => {
     ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill();
   });
@@ -337,7 +345,7 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
   ctx.font = 'bold 8px JetBrains Mono, monospace';
   ctx.textAlign = 'right';
   const isNutPerp = perpFret === 0;
-  ctx.fillStyle = isNutPerp ? 'rgba(200,169,110,0.95)' : 'rgba(210,185,120,0.7)';
+  ctx.fillStyle = isNutPerp ? cssAccent : isLight ? 'rgba(80,70,50,0.6)' : 'rgba(210,185,120,0.7)';
   ctx.fillText(isNutPerp ? '0 ⊥' : '0', labelX, nutBassY + 3);
 
   rows.forEach(r => {
@@ -352,11 +360,7 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
       ? 'bold 8px JetBrains Mono, monospace'
       : '8px JetBrains Mono, monospace';
     ctx.textAlign = 'right';
-    ctx.fillStyle = isSel
-      ? 'rgba(110,200,169,0.95)'
-      : isPerp
-        ? 'rgba(200,169,110,0.95)'
-        : 'rgba(180,170,150,0.55)';
+    ctx.fillStyle = isSel ? cssAccent2 : isPerp ? cssAccent : isLight ? 'rgba(60,50,30,0.5)' : 'rgba(180,170,150,0.55)';
 
     ctx.fillText(label, bx - 6, by + 3);
   });
@@ -365,23 +369,23 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
   ctx.textAlign = 'center';
   const nutMidX = (nutLeft + nutRight) / 2;
   const nutMidY = (nutBassY + nutTrebleY) / 2;
-  ctx.fillStyle = 'rgba(210,185,120,0.6)';
+  ctx.fillStyle = isLight ? 'rgba(80,60,20,0.6)' : 'rgba(210,185,120,0.6)';
   ctx.fillText('NUT', nutMidX, nutMidY - 10);
 
   const bMidX = (bridgeBassX + bridgeTrebleX) / 2;
   const bMidY = (bridgeBassY + bridgeTrebleY) / 2;
-  ctx.fillStyle = 'rgba(110,200,169,0.85)';
+  ctx.fillStyle = cssAccent2;
   ctx.fillText('BRIDGE', bMidX, bMidY + 16);
 
   ctx.font = '8px JetBrains Mono, monospace';
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(184,212,240,0.6)';
+  ctx.fillStyle = isLight ? 'rgba(60,100,160,0.7)' : 'rgba(184,212,240,0.6)';
   ctx.fillText(`${bassScale}mm`, bridgeBassX, bridgeBassY + 18);
-  ctx.fillStyle = 'rgba(110,200,169,0.6)';
+  ctx.fillStyle = isLight ? 'rgba(30,120,90,0.7)' : 'rgba(110,200,169,0.6)';
   ctx.fillText(`${trebleScale}mm`, bridgeTrebleX, bridgeTrebleY + 18);
 
   ctx.font = '8px JetBrains Mono, monospace';
-  ctx.fillStyle = 'rgba(184,212,240,0.35)';
+  ctx.fillStyle = isLight ? 'rgba(60,100,160,0.35)' : 'rgba(184,212,240,0.35)';
   ctx.save();
   ctx.translate(8, padTop + yShift + drawH * 0.25);
   ctx.rotate(-Math.PI / 2);
@@ -389,7 +393,7 @@ function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret
   ctx.fillText('BASS', 0, 0);
   ctx.restore();
 
-  ctx.fillStyle = 'rgba(110,200,169,0.35)';
+  ctx.fillStyle = isLight ? 'rgba(30,120,90,0.35)' : 'rgba(110,200,169,0.35)';
   ctx.save();
   ctx.translate(W - 8, padTop + yShift + drawH * 0.25);
   ctx.rotate(Math.PI / 2);
@@ -404,9 +408,9 @@ function exportCSV() {
   const perpFret    = Math.max(0, parseInt(document.getElementById('perpFret').value) || 0);
 
   const rows = calcFrets(bassScale, trebleScale, numFrets, perpFret);
-  let csv = 'Fret,Bass Side (mm),Treble Side (mm),Bass Spacing (mm),Treble Spacing (mm)\n';
+  let csv = 'Fret,Bass Side (mm),Treble Side (mm),Bass Spacing (mm),Treble Spacing (mm)\r\n';
   rows.forEach(r => {
-    csv += `${r.fret},${r.bassPos},${r.treblePos},${r.bassSpacing},${r.trebleSpacing}\n`;
+    csv += [r.fret, r.bassPos, r.treblePos, r.bassSpacing, r.trebleSpacing].join(',') + '\r\n';
   });
 
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -418,6 +422,16 @@ function exportCSV() {
 
 // Unit handling
 let currentUnit = 'mm';
+
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  const btn = document.getElementById('themeBtn');
+  btn.innerHTML = isLight
+    ? '<span class="icon">🌙</span><span>Dark</span>'
+    : '<span class="icon">☀️</span><span>Light</span>';
+  redrawNeck();
+}
+
 
 function setUnit(unit) {
   if (unit === currentUnit) return;

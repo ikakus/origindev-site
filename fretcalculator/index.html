@@ -14,6 +14,9 @@
     <h1>Fret Calculator</h1>
     <div class="subtitle">Multi-Scale / Fan Fret Position Calculator</div>
   </div>
+  <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">
+    <span class="icon">☀️</span><span>Light</span>
+  </button>
 </header>
 
 <div class="layout">
@@ -70,9 +73,9 @@
 
     <div class="table-header-row">
       <div class="legend">
-        <span><span class="legend-dot" style="background:#b8d4f0"></span>Bass</span>
-        <span><span class="legend-dot" style="background:#6ec8a9"></span>Treble</span>
-        <span><span class="legend-dot" style="background:#c8a96e"></span>Perpendicular Fret</span>
+        <span><span class="legend-dot" style="background:var(--bass-color)"></span>Bass</span>
+        <span><span class="legend-dot" style="background:var(--accent2)"></span>Treble</span>
+        <span><span class="legend-dot" style="background:var(--accent)"></span>Perpendicular Fret</span>
       </div>
       <button class="export-btn" onclick="exportCSV()">Export CSV</button>
     </div>
