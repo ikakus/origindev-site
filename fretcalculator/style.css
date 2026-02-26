@@ -150,23 +150,23 @@ body::before {
 
 header {
   border-bottom: 1px solid var(--border);
-  padding: 2rem 3rem;
+  padding: 0.6rem 2rem;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   background: linear-gradient(180deg, var(--header-bg) 0%, transparent 100%);
 }
 
 h1 {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-size: clamp(1.4rem, 3vw, 2rem);
   letter-spacing: 0.05em;
   color: var(--accent);
   line-height: 1;
 }
 
 .subtitle {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   color: var(--muted);
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -175,7 +175,7 @@ h1 {
 .layout {
   display: grid;
   grid-template-columns: 320px 1fr;
-  height: calc(100vh - 90px);
+  height: calc(100vh - 48px);
 }
 
 /* Controls panel */
@@ -462,7 +462,7 @@ td.spacing-treble { color: var(--treble-spacing-color); font-size: 0.75rem; }
 @media (max-width: 768px) {
   .layout { grid-template-columns: 1fr; }
   .controls { border-right: none; border-bottom: 1px solid var(--border); }
-  header { padding: 1.5rem; }
+  header { padding: 0.6rem 1rem; }
   .table-area { padding: 1.5rem; }
   .stats-row { flex-wrap: wrap; }
 }
