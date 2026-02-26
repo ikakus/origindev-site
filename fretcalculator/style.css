@@ -58,27 +58,84 @@ body {
   transition: background 0.2s, color 0.2s;
 }
 
+/* iOS-style theme toggle switch */
 .theme-toggle {
   margin-left: auto;
   background: none;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  padding: 0.4rem 0.9rem;
+  border: none;
+  padding: 0;
   cursor: pointer;
-  transition: all 0.2s;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  line-height: 1;
+  outline: none;
 }
 
-.theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
-.theme-toggle .icon { font-size: 0.8rem; line-height: 1; position: relative; top: 1px; }
+.toggle-track {
+  width: 58px;
+  height: 30px;
+  border-radius: 15px;
+  background: var(--muted);
+  position: relative;
+  transition: background 0.3s;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+body.light .toggle-track {
+  background: var(--accent);
+}
+
+/* Moon icon - visible in dark mode (left side) */
+.toggle-icon.moon {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%) scale(1) rotate(0deg);
+  line-height: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  opacity: 1;
+  color: var(--bg);
+}
+
+/* Sun icon - visible in light mode (right side) */
+.toggle-icon.sun {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%) scale(0.7) rotate(0deg);
+  line-height: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  opacity: 0.3;
+  color: var(--bg);
+}
+
+body.light .toggle-icon.moon {
+  opacity: 0.3;
+  transform: translateY(-50%) scale(0.7);
+}
+
+body.light .toggle-icon.sun {
+  opacity: 1;
+  transform: translateY(-50%) scale(1) rotate(20deg);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  z-index: 1;
+}
+
+body.light .toggle-thumb {
+  transform: translateX(28px);
+  background: #fff;
+}
 
 /* Grain overlay */
 body::before {

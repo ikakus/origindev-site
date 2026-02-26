@@ -424,11 +424,7 @@ function exportCSV() {
 let currentUnit = 'mm';
 
 function toggleTheme() {
-  const isLight = document.body.classList.toggle('light');
-  const btn = document.getElementById('themeBtn');
-  btn.innerHTML = isLight
-    ? '<span class="icon">🌙</span><span>Dark</span>'
-    : '<span class="icon">☀️</span><span>Light</span>';
+  document.body.classList.toggle('light');
   redrawNeck();
 }
 
