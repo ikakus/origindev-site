@@ -1,13 +1,80 @@
 let selectedFret = null;
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+const NUT_WIDTH_MM    = 43;
+const BRIDGE_WIDTH_MM = 56;
+const DOT_FRETS       = new Set([3,5,7,9,12,15,17,19,21,24]);
+const DOUBLE_DOTS     = new Set([12,24]);
+
+// ── Shared geometry ───────────────────────────────────────────────────────────
+// Single source of truth for all layout values.
+// scale=pxPerMm for canvas, scale=1 for PDF (which works in mm directly).
+// originX/originY are in mm (margins).
+function buildGeometry(bassScale, trebleScale, perpFret, scale, originX, originY) {
+  const treblePerpPos  = trebleScale - trebleScale / Math.pow(2, perpFret / 12);
+  const bassPerpPos    = bassScale   - bassScale   / Math.pow(2, perpFret / 12);
+  const offset         = treblePerpPos - bassPerpPos;
+  const bassNutShift   = offset > 0 ? offset : 0;
+  const trebleNutShift = offset < 0 ? -offset : 0;
+  const bodyExtra      = (BRIDGE_WIDTH_MM - NUT_WIDTH_MM) / 2;
+
+  const xNutBass      = (originX + bodyExtra)                * scale;
+  const xNutTreble    = (originX + bodyExtra + NUT_WIDTH_MM) * scale;
+  const xBridgeBass   =  originX                             * scale;
+  const xBridgeTreble = (originX + BRIDGE_WIDTH_MM)          * scale;
+
+  const yNutBass      = (originY + bassNutShift)                 * scale;
+  const yNutTreble    = (originY + trebleNutShift)               * scale;
+  const yBridgeBass   = (originY + bassNutShift   + bassScale)   * scale;
+  const yBridgeTreble = (originY + trebleNutShift + trebleScale) * scale;
+
+  const edgeBassX   = y => xNutBass   + (xBridgeBass   - xNutBass)   * (y - yNutBass)   / (yBridgeBass   - yNutBass);
+  const edgeTrebleX = y => xNutTreble + (xBridgeTreble - xNutTreble) * (y - yNutTreble) / (yBridgeTreble - yNutTreble);
+
+  // fretBassY/fretTrebleY: r comes from calcFrets, bassPos/treblePos measured from own nut
+  const fretBassY   = r => yNutBass   + r.bassPos   * scale;
+  const fretTrebleY = r => yNutTreble + r.treblePos * scale;
+
+  return {
+    bassNutShift, trebleNutShift, bodyExtra,
+    xNutBass, xNutTreble, xBridgeBass, xBridgeTreble,
+    yNutBass, yNutTreble, yBridgeBass, yBridgeTreble,
+    edgeBassX, edgeTrebleX, fretBassY, fretTrebleY,
+  };
+}
+
+// ── Fret calculation ──────────────────────────────────────────────────────────
+function calcFrets(bassScale, trebleScale, numFrets) {
+  const rows = [];
+  for (let n = 1; n <= numFrets; n++) {
+    const bassPos   = Math.round((bassScale   - bassScale   / Math.pow(2, n / 12)) * 10) / 10;
+    const treblePos = Math.round((trebleScale - trebleScale / Math.pow(2, n / 12)) * 10) / 10;
+    let bassSpacing, trebleSpacing;
+    if (n === 1) {
+      bassSpacing = bassPos; trebleSpacing = treblePos;
+    } else {
+      const pb = Math.round((bassScale   - bassScale   / Math.pow(2, (n-1) / 12)) * 10) / 10;
+      const pt = Math.round((trebleScale - trebleScale / Math.pow(2, (n-1) / 12)) * 10) / 10;
+      bassSpacing   = Math.round((bassPos   - pb) * 10) / 10;
+      trebleSpacing = Math.round((treblePos - pt) * 10) / 10;
+    }
+    rows.push({ fret: n, bassPos, treblePos, bassSpacing, trebleSpacing });
+  }
+  return rows;
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function getParams() {
+  const { bass, treble } = getScalesMm();
+  const numFrets = parseInt(document.getElementById('numFrets').value) || 24;
+  const perpFret = Math.max(0, parseInt(document.getElementById('perpFret').value) || 0);
+  return { bassScale: bass, trebleScale: treble, numFrets, perpFret };
+}
+
 function selectFret(fret) {
   const prev = document.querySelector('#tableBody tr.selected');
   if (prev) prev.classList.remove('selected');
-  if (selectedFret === fret) {
-    selectedFret = null;
-    redrawNeck();
-    return;
-  }
+  if (selectedFret === fret) { selectedFret = null; redrawNeck(); return; }
   selectedFret = fret;
   const row = document.querySelector(`#tableBody [data-fret="${fret}"]`);
   if (row) row.classList.add('selected');
@@ -15,634 +82,356 @@ function selectFret(fret) {
 }
 
 function redrawNeck() {
-  const { bass: bassScale, treble: trebleScale } = getScalesMm();
-  const numFrets = parseInt(document.getElementById('numFrets').value) || 24;
-  const perpFret = Math.max(0, parseInt(document.getElementById('perpFret').value) || 0);
-  const rows = calcFrets(bassScale, trebleScale, numFrets, perpFret);
-  drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret);
+  const { bassScale, trebleScale, numFrets, perpFret } = getParams();
+  drawNeck(calcFrets(bassScale, trebleScale, numFrets), bassScale, trebleScale, numFrets, perpFret, selectedFret);
 }
 
-function calcFrets(bassScale, trebleScale, numFrets, perpFret) {
-  // Fret positions are simply measured from each side's own nut — no offset involved.
-  // offset is only a canvas geometry concept (how much the bass nut is set back).
-  const rows = [];
-  for (let n = 1; n <= numFrets; n++) {
-    const bassPos   = Math.round((bassScale   - bassScale   / Math.pow(2, n / 12)) * 10) / 10;
-    const treblePos = Math.round((trebleScale - trebleScale / Math.pow(2, n / 12)) * 10) / 10;
-
-    let bassSpacing, trebleSpacing;
-    if (n === 1) {
-      bassSpacing   = bassPos;
-      trebleSpacing = treblePos;
-    } else {
-      const prevBass   = Math.round((bassScale   - bassScale   / Math.pow(2, (n-1) / 12)) * 10) / 10;
-      const prevTreble = Math.round((trebleScale - trebleScale / Math.pow(2, (n-1) / 12)) * 10) / 10;
-      bassSpacing   = Math.round((bassPos - prevBass)   * 10) / 10;
-      trebleSpacing = Math.round((treblePos - prevTreble) * 10) / 10;
-    }
-
-    rows.push({ fret: n, bassPos, treblePos, bassSpacing, trebleSpacing });
-  }
-  return rows;
-}
-
+// ── Render ────────────────────────────────────────────────────────────────────
 function render() {
   updateConvertHints();
-  const { bass: bassScale, treble: trebleScale } = getScalesMm();
-  const numFrets    = parseInt(document.getElementById('numFrets').value)       || 24;
-  const perpFret    = Math.max(0, parseInt(document.getElementById('perpFret').value) || 0);
+  const { bassScale, trebleScale, numFrets, perpFret } = getParams();
+  const rows = calcFrets(bassScale, trebleScale, numFrets);
 
-  const rows = calcFrets(bassScale, trebleScale, numFrets, perpFret);
-
-  // Stats
-  const stats = document.getElementById('statsRow');
-  const diff = Math.round((bassScale - trebleScale) * 10) / 10;
+  const nutOffset    = Math.round(((trebleScale - trebleScale / Math.pow(2, perpFret / 12)) -
+                                   (bassScale   - bassScale   / Math.pow(2, perpFret / 12))) * 10) / 10;
+  const nutOffsetStr = nutOffset === 0 ? '0.0 mm'
+    : nutOffset > 0 ? `+${nutOffset} mm (bass back)` : `${nutOffset} mm (treble back)`;
   const perpRow = perpFret === 0 ? { bassPos: 0, treblePos: 0 } : rows.find(r => r.fret === perpFret);
-  const treblePerpMm = trebleScale - trebleScale / Math.pow(2, perpFret / 12);
-  const bassPerpMm   = bassScale   - bassScale   / Math.pow(2, perpFret / 12);
-  const nutOffset    = Math.round((treblePerpMm - bassPerpMm) * 10) / 10;
-  const nutOffsetStr = nutOffset === 0 ? '0.0 mm' : (nutOffset > 0 ? `+${nutOffset} mm (bass back)` : `${nutOffset} mm (treble back)`);
-  stats.innerHTML = `
+  const diff = Math.round((bassScale - trebleScale) * 10) / 10;
+
+  document.getElementById('statsRow').innerHTML = `
     <div class="stat"><div class="stat-label">Scale Spread</div><div class="stat-value">${diff} mm</div></div>
     <div class="stat"><div class="stat-label">Perp Fret Bass</div><div class="stat-value">${perpRow ? perpRow.bassPos : '-'} mm</div></div>
     <div class="stat"><div class="stat-label">Perp Fret Treble</div><div class="stat-value green">${perpRow ? perpRow.treblePos : '-'} mm</div></div>
-    <div class="stat" title="Distance bass nut sits behind treble nut (measured perpendicular to strings)"><div class="stat-label">Nut Offset ⊥</div><div class="stat-value" style="font-size:0.95rem">${nutOffsetStr}</div></div>
+    <div class="stat" title="Distance bass nut sits behind treble nut"><div class="stat-label">Nut Offset ⊥</div><div class="stat-value" style="font-size:0.95rem">${nutOffsetStr}</div></div>
   `;
 
-  // Table
-  const tbody = document.getElementById('tableBody');
-  const fret0class = perpFret === 0 ? 'perp-fret' : '';
-  const fret0badge = perpFret === 0 ? '<span class="perp-badge">⊥</span>' : '';
-  const tp0 = trebleScale - trebleScale / Math.pow(2, perpFret / 12);
-  const bp0 = bassScale   - bassScale   / Math.pow(2, perpFret / 12);
-  const nut0offset = Math.round((tp0 - bp0) * 10) / 10;
-  const bassNormalize = nut0offset < 0 ? Math.abs(nut0offset) : 0;
-  const fret0html = `<tr class="${fret0class}" data-fret="0" onclick="selectFret(0)">
-      <td>0${fret0badge}</td>
-      <td class="bass">0.0</td>
-      <td class="treble">0.0</td>
-      <td class="spacing-bass" title="Nut offset: bass nut is ${Math.abs(nut0offset)}mm ${nut0offset >= 0 ? 'behind' : 'ahead of'} treble nut">${nut0offset >= 0 ? '+' : ''}${nut0offset} ofs</td>
+  document.getElementById('tableBody').innerHTML =
+    `<tr class="${perpFret===0?'perp-fret':''}" data-fret="0" onclick="selectFret(0)">
+      <td>0${perpFret===0?'<span class="perp-badge">⊥</span>':''}</td>
+      <td class="bass">0.0</td><td class="treble">0.0</td>
+      <td class="spacing-bass">${nutOffset>=0?'+':''}${nutOffset} ofs</td>
       <td class="spacing-treble">—</td>
-    </tr>`;
-  tbody.innerHTML = fret0html + rows.map(r => `
-    <tr class="${r.fret === perpFret ? 'perp-fret' : ''}" data-fret="${r.fret}" onclick="selectFret(${r.fret})">
-      <td>${r.fret}${r.fret === perpFret ? '<span class="perp-badge">⊥</span>' : ''}</td>
+    </tr>` +
+    rows.map(r => `
+    <tr class="${r.fret===perpFret?'perp-fret':''}" data-fret="${r.fret}" onclick="selectFret(${r.fret})">
+      <td>${r.fret}${r.fret===perpFret?'<span class="perp-badge">⊥</span>':''}</td>
       <td class="bass">${r.bassPos.toFixed(1)}</td>
       <td class="treble">${r.treblePos.toFixed(1)}</td>
       <td class="spacing-bass">${r.bassSpacing.toFixed(1)}</td>
       <td class="spacing-treble">${r.trebleSpacing.toFixed(1)}</td>
-    </tr>
-  `).join('');
+    </tr>`).join('');
 
   if (selectedFret !== null) {
-    const sel = tbody.querySelector(`[data-fret="${selectedFret}"]`);
+    const sel = document.querySelector(`#tableBody [data-fret="${selectedFret}"]`);
     if (sel) sel.classList.add('selected');
   }
 
   drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret);
 }
 
+// ── Canvas ────────────────────────────────────────────────────────────────────
 function drawNeck(rows, bassScale, trebleScale, numFrets, perpFret, selectedFret = null) {
   const canvas = document.getElementById('neckCanvas');
   const parent = canvas.parentElement;
-  const dpr = window.devicePixelRatio || 1;
+  const dpr    = window.devicePixelRatio || 1;
 
-  // Read CSS variables so canvas respects light/dark theme
-  const style = getComputedStyle(document.body);
-  const cssAccent  = style.getPropertyValue('--accent').trim();
-  const cssAccent2 = style.getPropertyValue('--accent2').trim();
-  const cssMuted   = style.getPropertyValue('--muted').trim();
-  const cssBg      = style.getPropertyValue('--bg').trim();
-  const isLight    = document.body.classList.contains('light');
+  const cs       = getComputedStyle(document.body);
+  const accent   = cs.getPropertyValue('--accent').trim();
+  const accent2  = cs.getPropertyValue('--accent2').trim();
+  const isLight  = document.body.classList.contains('light');
 
-  const padTop    = 30;
-  const padBottom = 36;
-  const padLeft   = 42;
-  const padRight  = 42;
+  const padTop = 30, padBottom = 36, padLeft = 42, padRight = 42;
+  const W      = parent.clientWidth - 24;
+  const drawW  = W - padLeft - padRight;
+  // Scale based on BRIDGE width (widest part) so the full neck fits within drawW
+  const pxPerMm = drawW / BRIDGE_WIDTH_MM;
+  // originX in mm: padLeft converted to mm (bridge starts at originX, nut is centered above it)
+  const originXmm = padLeft / pxPerMm;
+  const originYmm = padTop  / pxPerMm;
 
-  const W = parent.clientWidth - 24;
-  const drawW = W - padLeft - padRight;
+  const geo = buildGeometry(bassScale, trebleScale, perpFret, pxPerMm, originXmm, originYmm);
+  const { xNutBass, xNutTreble, xBridgeBass, xBridgeTreble,
+          yNutBass, yNutTreble, yBridgeBass, yBridgeTreble,
+          edgeBassX, edgeTrebleX, fretBassY, fretTrebleY,
+          bassNutShift, trebleNutShift } = geo;
 
-  const realNutMm = 43;
-  const pxPerMm   = drawW / realNutMm;
+  const drawH = Math.max(yBridgeBass, yBridgeTreble) - Math.min(yNutBass, yNutTreble) + padBottom;
+  const H = Math.max(yBridgeBass, yBridgeTreble) + padBottom;
 
-  const _tp = trebleScale - trebleScale / Math.pow(2, perpFret / 12);
-  const _bp = bassScale   - bassScale   / Math.pow(2, perpFret / 12);
-  const _off = _tp - _bp;
-  const extraTop = 0; // nut shifts handled by bassNutShift/trebleNutShift
-  const drawH    = Math.max(bassScale, trebleScale) * pxPerMm + Math.abs(_off) * pxPerMm;
-  const H        = drawH + padTop + padBottom + extraTop;
-
-  canvas.width       = W * dpr;
-  canvas.height      = H * dpr;
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
 
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
   if (!rows || rows.length === 0) return;
 
-  const xBass   = padLeft;
-  const xTreble = padLeft + drawW;
-
-  const yShift  = extraTop;
-  const bassY   = mm => padTop + yShift + mm * pxPerMm;
-  const trebleY = mm => padTop + yShift + mm * pxPerMm;
-
-  const treblePerpPos = trebleScale - trebleScale / Math.pow(2, perpFret / 12);
-  const bassPerpPos   = bassScale   - bassScale   / Math.pow(2, perpFret / 12);
-  const offset        = treblePerpPos - bassPerpPos;
-  // offset > 0: bass nut is set back (below treble nut on canvas)
-  // offset < 0: treble nut is set back (below bass nut on canvas)
-  const bassNutShift   = offset > 0 ? offset : 0;  // bass nut pushed down
-  const trebleNutShift = offset < 0 ? -offset : 0; // treble nut pushed down
-
-  const nutBassY   = bassY(bassNutShift);
-  const nutTrebleY = trebleY(trebleNutShift);
-
-  const bridgeBassY   = bassY(bassScale   + bassNutShift);
-  const bridgeTrebleY = trebleY(trebleScale + trebleNutShift);
-
-  const bodyExtra = drawW * (56/43 - 1) / 2;
-
-  const nutLeft  = xBass;
-  const nutRight = xTreble;
-
-  const bridgeBassX   = xBass   - bodyExtra;
-  const bridgeTrebleX = xTreble + bodyExtra;
-
-  const neckGrad = ctx.createLinearGradient(0, Math.min(nutBassY, nutTrebleY), 0, Math.max(bridgeBassY, bridgeTrebleY));
-  neckGrad.addColorStop(0,   isLight ? '#c8bfa8' : '#1e1a12');
-  neckGrad.addColorStop(0.5, isLight ? '#bdb49c' : '#29221a');
-  neckGrad.addColorStop(1,   isLight ? '#c2b9a2' : '#1a1510');
+  // Neck fill
+  const grad = ctx.createLinearGradient(0, Math.min(yNutBass,yNutTreble), 0, Math.max(yBridgeBass,yBridgeTreble));
+  grad.addColorStop(0,   isLight ? '#c8bfa8' : '#1e1a12');
+  grad.addColorStop(0.5, isLight ? '#bdb49c' : '#29221a');
+  grad.addColorStop(1,   isLight ? '#c2b9a2' : '#1a1510');
   ctx.beginPath();
-  ctx.moveTo(nutLeft,        nutBassY);
-  ctx.lineTo(nutRight,       nutTrebleY);
-  ctx.lineTo(bridgeTrebleX,  bridgeTrebleY);
-  ctx.lineTo(bridgeBassX,    bridgeBassY);
-  ctx.closePath();
-  ctx.fillStyle = neckGrad;
-  ctx.fill();
-
-  ctx.strokeStyle = isLight ? 'rgba(80,60,30,0.35)' : 'rgba(100,80,50,0.45)';
-  ctx.lineWidth = 1;
+  ctx.moveTo(xNutBass,xNutBass); // wrong — fix:
   ctx.beginPath();
-  ctx.moveTo(nutLeft, nutBassY); ctx.lineTo(bridgeBassX, bridgeBassY); ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(nutRight, nutTrebleY); ctx.lineTo(bridgeTrebleX, bridgeTrebleY); ctx.stroke();
+  ctx.moveTo(xNutBass, yNutBass); ctx.lineTo(xNutTreble, yNutTreble);
+  ctx.lineTo(xBridgeTreble, yBridgeTreble); ctx.lineTo(xBridgeBass, yBridgeBass);
+  ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
 
-  const edgeBassX = y => {
-    const t = (y - nutBassY) / (bridgeBassY - nutBassY);
-    return nutLeft + (bridgeBassX - nutLeft) * Math.max(0, Math.min(1, t));
-  };
-  const edgeTrebleX = y => {
-    const t = (y - nutTrebleY) / (bridgeTrebleY - nutTrebleY);
-    return nutRight + (bridgeTrebleX - nutRight) * Math.max(0, Math.min(1, t));
-  };
+  ctx.strokeStyle = isLight ? 'rgba(80,60,30,0.35)' : 'rgba(100,80,50,0.45)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(xNutBass,   yNutBass);   ctx.lineTo(xBridgeBass,   yBridgeBass);   ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(xNutTreble, yNutTreble); ctx.lineTo(xBridgeTreble, yBridgeTreble); ctx.stroke();
 
-  const numStrings = 6;
-  ctx.save();
-  for (let s = 0; s < numStrings; s++) {
-    const t = s / (numStrings - 1);
-    const stringScale = bassScale + (trebleScale - bassScale) * t;
-    const sNutX = nutLeft  + (nutRight  - nutLeft)  * t;
-    const sNutY = nutBassY + (nutTrebleY - nutBassY) * t;
-    const sBridgeY = bassY(stringScale + bassNutShift + (trebleNutShift - bassNutShift) * t);
-    const sBridgeX = bridgeBassX + (bridgeTrebleX - bridgeBassX) * t;
-    ctx.beginPath();
-    ctx.moveTo(sNutX, sNutY);
-    ctx.lineTo(sBridgeX, sBridgeY);
-    ctx.strokeStyle = isLight ? `rgba(80,60,20,${0.15 + t * 0.1})` : `rgba(220,205,170,${0.1 + t * 0.07})`;
-    ctx.lineWidth = 0.35 + t * 0.2;
-    ctx.stroke();
+  // Strings
+  for (let s = 0; s < 6; s++) {
+    const t = s / 5;
+    const ss = bassScale + (trebleScale - bassScale) * t;
+    const sNX = xNutBass + (xNutTreble - xNutBass) * t;
+    const sNY = yNutBass + (yNutTreble - yNutBass) * t;
+    const sBY = (originYmm + bassNutShift + ss + (trebleNutShift - bassNutShift) * t) * pxPerMm;
+    const sBX = xBridgeBass + (xBridgeTreble - xBridgeBass) * t;
+    ctx.beginPath(); ctx.moveTo(sNX, sNY); ctx.lineTo(sBX, sBY);
+    ctx.strokeStyle = isLight ? `rgba(80,60,20,${0.15+t*0.1})` : `rgba(220,205,170,${0.1+t*0.07})`;
+    ctx.lineWidth = 0.35 + t * 0.2; ctx.stroke();
   }
-  ctx.restore();
 
-  const dotFrets    = new Set([3,5,7,9,12,15,17,19,21,24]);
-  const doubleDots  = new Set([12,24]);
-
-  const allRowsWithNut = [{ fret: 0, bassPos: bassNutShift, treblePos: trebleNutShift }, ...rows];
+  // Selected fret highlight
+  const allRowsWithNut = [{ fret: 0, bassPos: 0, treblePos: 0 }, ...rows];
   if (selectedFret !== null) {
-    const selIdx = allRowsWithNut.findIndex(r => r.fret === selectedFret);
-    if (selIdx >= 0) {
-      const selRow  = allRowsWithNut[selIdx];
-      const prevRow = selIdx > 0 ? allRowsWithNut[selIdx - 1] : null;
-
-      const sby = selRow.fret === 0 ? nutBassY   : bassY(selRow.bassPos + bassNutShift);
-      const sty = selRow.fret === 0 ? nutTrebleY : trebleY(selRow.treblePos + trebleNutShift);
-      const sbx = selRow.fret === 0 ? nutLeft    : edgeBassX(sby);
-      const stx = selRow.fret === 0 ? nutRight   : edgeTrebleX(sty);
-
-      if (prevRow) {
-        const pby = prevRow.fret === 0 ? nutBassY   : bassY(prevRow.bassPos + bassNutShift);
-        const pty = prevRow.fret === 0 ? nutTrebleY : trebleY(prevRow.treblePos + trebleNutShift);
-        const pbx = prevRow.fret === 0 ? nutLeft    : edgeBassX(pby);
-        const ptx = prevRow.fret === 0 ? nutRight   : edgeTrebleX(pty);
-
+    const si = allRowsWithNut.findIndex(r => r.fret === selectedFret);
+    if (si >= 0) {
+      const sr = allRowsWithNut[si], pr = si > 0 ? allRowsWithNut[si-1] : null;
+      const sby = sr.fret===0 ? yNutBass   : fretBassY(sr);
+      const sty = sr.fret===0 ? yNutTreble : fretTrebleY(sr);
+      const sbx = sr.fret===0 ? xNutBass   : edgeBassX(sby);
+      const stx = sr.fret===0 ? xNutTreble : edgeTrebleX(sty);
+      if (pr) {
+        const pby = pr.fret===0 ? yNutBass   : fretBassY(pr);
+        const pty = pr.fret===0 ? yNutTreble : fretTrebleY(pr);
         ctx.beginPath();
-        ctx.moveTo(pbx, pby);
-        ctx.lineTo(ptx, pty);
-        ctx.lineTo(stx, sty);
-        ctx.lineTo(sbx, sby);
-        ctx.closePath();
-        ctx.fillStyle = isLight ? 'rgba(110,200,169,0.18)' : 'rgba(110,200,169,0.12)';
-        ctx.fill();
+        ctx.moveTo(pr.fret===0?xNutBass:edgeBassX(pby), pby);
+        ctx.lineTo(pr.fret===0?xNutTreble:edgeTrebleX(pty), pty);
+        ctx.lineTo(stx, sty); ctx.lineTo(sbx, sby); ctx.closePath();
+        ctx.fillStyle = isLight ? 'rgba(110,200,169,0.18)' : 'rgba(110,200,169,0.12)'; ctx.fill();
       }
-
-      ctx.beginPath();
-      ctx.moveTo(sbx, sby);
-      ctx.lineTo(stx, sty);
-      ctx.strokeStyle = cssAccent2;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sbx, sby); ctx.lineTo(stx, sty);
+      ctx.strokeStyle = accent2; ctx.lineWidth = 2; ctx.stroke();
     }
   }
 
+  // Frets
   rows.forEach(r => {
-    const isPerp = r.fret === perpFret;
-    const isSel  = r.fret === selectedFret;
-    const by = bassY(r.bassPos + bassNutShift);
-    const ty = trebleY(r.treblePos + trebleNutShift);
-    const bx = edgeBassX(by);
-    const tx = edgeTrebleX(ty);
-
-    ctx.beginPath();
-    ctx.moveTo(bx, by);
-    ctx.lineTo(tx, ty);
-    ctx.strokeStyle = isSel
-      ? cssAccent2
-      : isPerp
-        ? cssAccent
-        : isLight ? 'rgba(80,70,50,0.3)' : 'rgba(185,175,155,0.28)';
-    ctx.lineWidth = isSel ? 2 : isPerp ? 2 : 0.85;
-    ctx.stroke();
+    const by=fretBassY(r), ty=fretTrebleY(r), bx=edgeBassX(by), tx=edgeTrebleX(ty);
+    const isPerp=r.fret===perpFret, isSel=r.fret===selectedFret;
+    ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(tx,ty);
+    ctx.strokeStyle = isSel?accent2:isPerp?accent:isLight?'rgba(80,70,50,0.3)':'rgba(185,175,155,0.28)';
+    ctx.lineWidth = isSel||isPerp ? 2 : 0.85; ctx.stroke();
   });
 
-  const allRows = [{ fret: 0, bassPos: bassNutShift, treblePos: trebleNutShift }, ...rows];
-
-  rows.forEach((r, i) => {
-    if (!dotFrets.has(r.fret)) return;
-
-    const prev = allRows[i];
-
-    const prevBassY   = bassY(prev.bassPos + bassNutShift);
-    const prevTrebleY = trebleY(prev.treblePos + trebleNutShift);
-    const currBassY   = bassY(r.bassPos + bassNutShift);
-    const currTrebleY = trebleY(r.treblePos + trebleNutShift);
-
-    const midBassY   = (prevBassY   + currBassY)   / 2;
-    const midTrebleY = (prevTrebleY + currTrebleY) / 2;
-
-    const midBassX   = edgeBassX(midBassY);
-    const midTrebleX = edgeTrebleX(midTrebleY);
-
-    const dotX = (midBassX + midTrebleX) / 2;
-    const dotY = (midBassY + midTrebleY) / 2;
-
-    const isPerp  = r.fret === perpFret;
-    const dotColor = isPerp ? cssAccent : isLight ? 'rgba(80,70,50,0.3)' : 'rgba(210,190,150,0.35)';
-    const dotR = 3;
-
-    if (doubleDots.has(r.fret)) {
-      const spacing = dotR * 3;
-      [-1, 1].forEach(side => {
-        ctx.beginPath();
-        ctx.arc(dotX + side * spacing, dotY, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = dotColor;
-        ctx.fill();
-      });
-    } else {
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, dotR, 0, Math.PI * 2);
-      ctx.fillStyle = dotColor;
-      ctx.fill();
-    }
+  // Dots
+  const allRows = [{ fret:0, bassPos:0, treblePos:0 }, ...rows];
+  rows.forEach((r,i) => {
+    if (!DOT_FRETS.has(r.fret)) return;
+    const prev=allRows[i];
+    const mBy=(fretBassY(prev)+fretBassY(r))/2, mTy=(fretTrebleY(prev)+fretTrebleY(r))/2;
+    const dX=(edgeBassX(mBy)+edgeTrebleX(mTy))/2, dY=(mBy+mTy)/2;
+    const isPerp=r.fret===perpFret;
+    ctx.fillStyle = isPerp?accent:isLight?'rgba(80,70,50,0.3)':'rgba(210,190,150,0.35)';
+    if (DOUBLE_DOTS.has(r.fret)) {
+      [-1,1].forEach(s=>{ctx.beginPath();ctx.arc(dX+s*9,dY,3,0,Math.PI*2);ctx.fill();});
+    } else { ctx.beginPath();ctx.arc(dX,dY,3,0,Math.PI*2);ctx.fill(); }
   });
 
-  ctx.beginPath();
-  ctx.moveTo(nutLeft,  nutBassY);
-  ctx.lineTo(nutRight, nutTrebleY);
-  ctx.strokeStyle = cssAccent;
-  ctx.lineWidth = 4;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-  ctx.lineCap = 'butt';
+  // Nut
+  ctx.beginPath(); ctx.moveTo(xNutBass,yNutBass); ctx.lineTo(xNutTreble,yNutTreble);
+  ctx.strokeStyle=accent; ctx.lineWidth=4; ctx.lineCap='round'; ctx.stroke(); ctx.lineCap='butt';
 
-  ctx.beginPath();
-  ctx.moveTo(bridgeBassX,   bridgeBassY);
-  ctx.lineTo(bridgeTrebleX, bridgeTrebleY);
-  ctx.strokeStyle = cssAccent2;
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
-
-  ctx.fillStyle = cssAccent2;
-  [[bridgeBassX, bridgeBassY], [bridgeTrebleX, bridgeTrebleY]].forEach(([x, y]) => {
-    ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill();
+  // Bridge
+  ctx.beginPath(); ctx.moveTo(xBridgeBass,yBridgeBass); ctx.lineTo(xBridgeTreble,yBridgeTreble);
+  ctx.strokeStyle=accent2; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.fillStyle=accent2;
+  [[xBridgeBass,yBridgeBass],[xBridgeTreble,yBridgeTreble]].forEach(([x,y])=>{
+    ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();
   });
 
-  const labelX = xBass - 6;
-
-  ctx.font = 'bold 8px JetBrains Mono, monospace';
-  ctx.textAlign = 'right';
-  const isNutPerp = perpFret === 0;
-  ctx.fillStyle = isNutPerp ? cssAccent : isLight ? 'rgba(80,70,50,0.6)' : 'rgba(210,185,120,0.7)';
-  ctx.fillText(isNutPerp ? '0 ⊥' : '0', labelX, nutBassY + 3);
+  // Text labels
+  ctx.font='bold 8px JetBrains Mono,monospace'; ctx.textAlign='right';
+  ctx.fillStyle=perpFret===0?accent:isLight?'rgba(80,70,50,0.6)':'rgba(210,185,120,0.7)';
+  ctx.fillText(perpFret===0?'0 ⊥':'0', xNutBass-6, yNutBass+3);
 
   rows.forEach(r => {
-    const isPerp = r.fret === perpFret;
-    const isSel  = r.fret === selectedFret;
-    const by = bassY(r.bassPos + bassNutShift);
-    const bx = edgeBassX(by);
-
-    const label = isPerp ? `${r.fret} ⊥` : `${r.fret}`;
-
-    ctx.font = (isPerp || isSel)
-      ? 'bold 8px JetBrains Mono, monospace'
-      : '8px JetBrains Mono, monospace';
-    ctx.textAlign = 'right';
-    ctx.fillStyle = isSel ? cssAccent2 : isPerp ? cssAccent : isLight ? 'rgba(60,50,30,0.5)' : 'rgba(180,170,150,0.55)';
-
-    ctx.fillText(label, bx - 6, by + 3);
+    const isPerp=r.fret===perpFret, isSel=r.fret===selectedFret;
+    const by=fretBassY(r), bx=edgeBassX(by);
+    ctx.font=(isPerp||isSel)?'bold 8px JetBrains Mono,monospace':'8px JetBrains Mono,monospace';
+    ctx.textAlign='right';
+    ctx.fillStyle=isSel?accent2:isPerp?accent:isLight?'rgba(60,50,30,0.5)':'rgba(180,170,150,0.55)';
+    ctx.fillText(isPerp?`${r.fret} ⊥`:`${r.fret}`, bx-6, by+3);
   });
 
-  ctx.font = 'bold 9px JetBrains Mono, monospace';
-  ctx.textAlign = 'center';
-  const nutMidX = (nutLeft + nutRight) / 2;
-  const nutMidY = (nutBassY + nutTrebleY) / 2;
-  ctx.fillStyle = isLight ? 'rgba(80,60,20,0.6)' : 'rgba(210,185,120,0.6)';
-  ctx.fillText('NUT', nutMidX, nutMidY - 10);
+  ctx.font='bold 9px JetBrains Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=isLight?'rgba(80,60,20,0.6)':'rgba(210,185,120,0.6)';
+  ctx.fillText('NUT',(xNutBass+xNutTreble)/2,(yNutBass+yNutTreble)/2-10);
+  ctx.fillStyle=accent2;
+  ctx.fillText('BRIDGE',(xBridgeBass+xBridgeTreble)/2,(yBridgeBass+yBridgeTreble)/2+16);
 
-  const bMidX = (bridgeBassX + bridgeTrebleX) / 2;
-  const bMidY = (bridgeBassY + bridgeTrebleY) / 2;
-  ctx.fillStyle = cssAccent2;
-  ctx.fillText('BRIDGE', bMidX, bMidY + 16);
+  ctx.font='8px JetBrains Mono,monospace'; ctx.textAlign='center';
+  ctx.fillStyle=isLight?'rgba(60,100,160,0.7)':'rgba(184,212,240,0.6)';
+  ctx.fillText(`${bassScale}mm`,xBridgeBass,yBridgeBass+18);
+  ctx.fillStyle=isLight?'rgba(30,120,90,0.7)':'rgba(110,200,169,0.6)';
+  ctx.fillText(`${trebleScale}mm`,xBridgeTreble,yBridgeTreble+18);
 
-  ctx.font = '8px JetBrains Mono, monospace';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = isLight ? 'rgba(60,100,160,0.7)' : 'rgba(184,212,240,0.6)';
-  ctx.fillText(`${bassScale}mm`, bridgeBassX, bridgeBassY + 18);
-  ctx.fillStyle = isLight ? 'rgba(30,120,90,0.7)' : 'rgba(110,200,169,0.6)';
-  ctx.fillText(`${trebleScale}mm`, bridgeTrebleX, bridgeTrebleY + 18);
-
-  ctx.font = '8px JetBrains Mono, monospace';
-  ctx.fillStyle = isLight ? 'rgba(60,100,160,0.35)' : 'rgba(184,212,240,0.35)';
-  ctx.save();
-  ctx.translate(8, padTop + yShift + drawH * 0.25);
-  ctx.rotate(-Math.PI / 2);
-  ctx.textAlign = 'center';
-  ctx.fillText('BASS', 0, 0);
-  ctx.restore();
-
-  ctx.fillStyle = isLight ? 'rgba(30,120,90,0.35)' : 'rgba(110,200,169,0.35)';
-  ctx.save();
-  ctx.translate(W - 8, padTop + yShift + drawH * 0.25);
-  ctx.rotate(Math.PI / 2);
-  ctx.textAlign = 'center';
-  ctx.fillText('TREBLE', 0, 0);
-  ctx.restore();
+  const midH = (Math.min(yNutBass,yNutTreble) + Math.max(yBridgeBass,yBridgeTreble)) / 2;
+  ctx.font='8px JetBrains Mono,monospace';
+  ctx.fillStyle=isLight?'rgba(60,100,160,0.35)':'rgba(184,212,240,0.35)';
+  ctx.save(); ctx.translate(8,midH); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText('BASS',0,0); ctx.restore();
+  ctx.fillStyle=isLight?'rgba(30,120,90,0.35)':'rgba(110,200,169,0.35)';
+  ctx.save(); ctx.translate(W-8,midH); ctx.rotate(Math.PI/2); ctx.textAlign='center'; ctx.fillText('TREBLE',0,0); ctx.restore();
 }
 
-
+// ── PDF export ────────────────────────────────────────────────────────────────
 function exportPDF() {
-  const { bass: bassScale, treble: trebleScale } = getScalesMm();
-  const numFrets  = parseInt(document.getElementById('numFrets').value) || 24;
-  const perpFret  = Math.max(0, parseInt(document.getElementById('perpFret').value) || 0);
-  const rows      = calcFrets(bassScale, trebleScale, numFrets, perpFret);
-
+  const { bassScale, trebleScale, numFrets, perpFret } = getParams();
+  const rows = calcFrets(bassScale, trebleScale, numFrets);
   const { jsPDF } = window.jspdf;
 
-  // --- Real-world dimensions in mm ---
-  const marginLeft   = 25;   // mm left margin
-  const marginTop    = 20;   // mm top margin
-  const marginBottom = 20;
-  const marginRight  = 20;
-  const nutWidthMm   = 43;   // real nut width mm
-  const bridgeWidthMm = 56;  // real bridge width mm
+  const marginL=20, marginR=20, marginT=18, marginB=15;
+  const pageW = marginL + BRIDGE_WIDTH_MM + marginR;
 
-  // Page height = max scale + offset allowance + margins
-  const treblePerpPos = trebleScale - trebleScale / Math.pow(2, perpFret / 12);
-  const bassPerpPos   = bassScale   - bassScale   / Math.pow(2, perpFret / 12);
-  const offset        = treblePerpPos - bassPerpPos;
-  const extraTop      = offset < 0 ? Math.abs(offset) : 0;
-  const pageH         = marginTop + extraTop + Math.max(bassScale, trebleScale) + Math.abs(offset) + marginBottom;
-  const pageW         = marginLeft + bridgeWidthMm + marginRight;
+  // scale=1: buildGeometry returns mm coordinates directly for PDF
+  const geo = buildGeometry(bassScale, trebleScale, perpFret, 1, marginL, marginT);
+  const { xNutBass, xNutTreble, xBridgeBass, xBridgeTreble,
+          yNutBass, yNutTreble, yBridgeBass, yBridgeTreble,
+          edgeBassX, edgeTrebleX, fretBassY, fretTrebleY } = geo;
 
-  const doc = new jsPDF({ unit: 'mm', format: [pageW, pageH], orientation: 'portrait' });
+  const pageH = Math.max(yBridgeBass, yBridgeTreble) + marginB + 12;
+  const doc = new jsPDF({ unit:'mm', format:[pageW,pageH], orientation:'portrait' });
 
-  // Helpers: mm coordinates on page
-  const xCenter    = marginLeft + bridgeWidthMm / 2;
-  const xBass      = marginLeft + (bridgeWidthMm - nutWidthMm) / 2;          // bass (left) nut corner
-  const xTreble    = xBass + nutWidthMm;                                      // treble (right) nut corner
-  const xBridgeBass   = marginLeft;
-  const xBridgeTreble = marginLeft + bridgeWidthMm;
+  doc.setFillColor(245,241,232); doc.rect(0,0,pageW,pageH,'F');
 
-  const nutBassY    = marginTop + extraTop + offset;
-  const nutTrebleY  = marginTop + extraTop;
-  const bridgeBassY    = marginTop + extraTop + bassScale + offset;
-  const bridgeTrebleY  = marginTop + extraTop + trebleScale;
+  // Neck
+  doc.setFillColor(205,190,160); doc.setDrawColor(140,115,70); doc.setLineWidth(0.25);
+  doc.lines([
+    [xNutTreble-xNutBass,       yNutTreble-yNutBass],
+    [xBridgeTreble-xNutTreble,  yBridgeTreble-yNutTreble],
+    [xBridgeBass-xBridgeTreble, yBridgeBass-yBridgeTreble],
+    [xNutBass-xBridgeBass,      yNutBass-yBridgeBass],
+  ], xNutBass, yNutBass, [1,1], 'FD', true);
 
-  // Interpolate X along neck edges at a given Y
-  const edgeBassX    = y => xBass    + (xBridgeBass    - xBass)    * (y - nutBassY)   / (bridgeBassY   - nutBassY);
-  const edgeTrebleX  = y => xTreble  + (xBridgeTreble  - xTreble)  * (y - nutTrebleY) / (bridgeTrebleY - nutTrebleY);
+  // Nut
+  doc.setDrawColor(160,120,50); doc.setLineWidth(0.8);
+  doc.line(xNutBass,yNutBass,xNutTreble,yNutTreble);
 
-  // --- Background ---
-  doc.setFillColor(248, 244, 236);
-  doc.rect(0, 0, pageW, pageH, 'F');
-
-  // --- Neck fill ---
-  doc.setFillColor(210, 195, 165);
-  doc.setDrawColor(160, 130, 80);
-  doc.setLineWidth(0.3);
-  const neckPoly = [
-    { x: xBass,         y: nutBassY      },
-    { x: xTreble,       y: nutTrebleY    },
-    { x: xBridgeTreble, y: bridgeTrebleY },
-    { x: xBridgeBass,   y: bridgeBassY   },
-  ];
-  doc.setFillColor(210, 195, 165);
-  // Draw as lines since jsPDF polygon support is limited
-  doc.lines(
-    [
-      [xTreble - xBass,         nutTrebleY - nutBassY],
-      [xBridgeTreble - xTreble, bridgeTrebleY - nutTrebleY],
-      [xBridgeBass - xBridgeTreble, bridgeBassY - bridgeTrebleY],
-      [xBass - xBridgeBass,     nutBassY - bridgeBassY],
-    ],
-    xBass, nutBassY, [1, 1], 'FD', true
-  );
-
-  // --- NUT ---
-  doc.setDrawColor(160, 120, 50);
-  doc.setLineWidth(1.2);
-  doc.line(xBass, nutBassY, xTreble, nutTrebleY);
-
-  // --- BRIDGE ---
-  doc.setDrawColor(46, 148, 112);
-  doc.setLineWidth(0.8);
-  doc.line(xBridgeBass, bridgeBassY, xBridgeTreble, bridgeTrebleY);
-
-  // Bridge dots
-  doc.setFillColor(46, 148, 112);
-  doc.circle(xBridgeBass,   bridgeBassY,   1.2, 'F');
-  doc.circle(xBridgeTreble, bridgeTrebleY, 1.2, 'F');
-
-  // --- FRETS ---
-  const dotFrets   = new Set([3,5,7,9,12,15,17,19,21,24]);
-  const doubleDots = new Set([12,24]);
-  const allRows    = [{ fret: 0, bassPos: offset, treblePos: 0 }, ...rows];
-
+  // Frets + dots
+  const allRows = [{fret:0,bassPos:0,treblePos:0},...rows];
   rows.forEach(r => {
-    const isPerp = r.fret === perpFret;
-    const by = marginTop + extraTop + r.bassPos;
-    const ty = marginTop + extraTop + r.treblePos;
-    const bx = edgeBassX(by);
-    const tx = edgeTrebleX(ty);
-
-    if (isPerp) {
-      doc.setDrawColor(160, 120, 50);
-      doc.setLineWidth(0.5);
-    } else {
-      doc.setDrawColor(120, 110, 90);
-      doc.setLineWidth(0.2);
-    }
-    doc.line(bx, by, tx, ty);
-
-    // Fret number label
-    doc.setFontSize(5);
-    doc.setTextColor(100, 90, 70);
-    doc.text(isPerp ? `${r.fret} ⊥` : `${r.fret}`, bx - 3, by + 0.5, { align: 'right' });
+    const by=fretBassY(r), ty=fretTrebleY(r), bx=edgeBassX(by), tx=edgeTrebleX(ty);
+    const isPerp=r.fret===perpFret;
+    doc.setDrawColor(isPerp?160:110, isPerp?120:100, isPerp?50:80);
+    doc.setLineWidth(isPerp?0.45:0.18);
+    doc.line(bx,by,tx,ty);
+    doc.setFontSize(4.5); doc.setTextColor(90,80,60);
+    doc.text(isPerp?`${r.fret}\u22a5`:`${r.fret}`, bx-1.5, by+0.4, {align:'right'});
   });
 
-  // --- DOTS ---
-  rows.forEach((r, i) => {
-    if (!dotFrets.has(r.fret)) return;
-    const prev = allRows[i];
-    const midBassY   = (marginTop + extraTop + prev.bassPos   + marginTop + extraTop + r.bassPos)   / 2;
-    const midTrebleY = (marginTop + extraTop + prev.treblePos + marginTop + extraTop + r.treblePos) / 2;
-    const dotX = (edgeBassX(midBassY) + edgeTrebleX(midTrebleY)) / 2;
-    const dotY = (midBassY + midTrebleY) / 2;
-    const isPerp = r.fret === perpFret;
-    doc.setFillColor(isPerp ? 160 : 140, isPerp ? 120 : 120, isPerp ? 50 : 90);
-    if (doubleDots.has(r.fret)) {
-      doc.circle(dotX - 2.5, dotY, 1.0, 'F');
-      doc.circle(dotX + 2.5, dotY, 1.0, 'F');
-    } else {
-      doc.circle(dotX, dotY, 1.0, 'F');
-    }
+  rows.forEach((r,i) => {
+    if (!DOT_FRETS.has(r.fret)) return;
+    const prev=allRows[i];
+    const mBy=(fretBassY(prev)+fretBassY(r))/2, mTy=(fretTrebleY(prev)+fretTrebleY(r))/2;
+    const dX=(edgeBassX(mBy)+edgeTrebleX(mTy))/2, dY=(mBy+mTy)/2;
+    const isPerp=r.fret===perpFret;
+    doc.setFillColor(isPerp?160:130, isPerp?120:115, isPerp?50:85);
+    if (DOUBLE_DOTS.has(r.fret)) {
+      doc.circle(dX-2.2,dY,0.9,'F'); doc.circle(dX+2.2,dY,0.9,'F');
+    } else { doc.circle(dX,dY,0.9,'F'); }
   });
 
-  // --- Labels ---
-  doc.setFontSize(6);
-  doc.setTextColor(60, 50, 30);
-  doc.text('NUT', xCenter, Math.min(nutBassY, nutTrebleY) - 3, { align: 'center' });
-  doc.setTextColor(46, 148, 112);
-  doc.text('BRIDGE', xCenter, Math.max(bridgeBassY, bridgeTrebleY) + 6, { align: 'center' });
+  // Bridge
+  doc.setDrawColor(46,148,112); doc.setLineWidth(0.6);
+  doc.line(xBridgeBass,yBridgeBass,xBridgeTreble,yBridgeTreble);
+  doc.setFillColor(46,148,112);
+  doc.circle(xBridgeBass,yBridgeBass,0.9,'F');
+  doc.circle(xBridgeTreble,yBridgeTreble,0.9,'F');
 
-  // Scale length annotations
-  doc.setFontSize(5.5);
-  doc.setTextColor(58, 111, 160);
-  doc.text(`${bassScale} mm`, xBridgeBass - 1, bridgeBassY + 10, { align: 'center' });
-  doc.setTextColor(46, 148, 112);
-  doc.text(`${trebleScale} mm`, xBridgeTreble + 1, bridgeTrebleY + 10, { align: 'center' });
+  // Labels
+  const xC=(xNutBass+xNutTreble)/2;
+  doc.setFontSize(5.5); doc.setTextColor(60,50,30);
+  doc.text('NUT',xC,Math.min(yNutBass,yNutTreble)-2,{align:'center'});
+  doc.setTextColor(46,148,112);
+  doc.text('BRIDGE',xC,Math.max(yBridgeBass,yBridgeTreble)+5,{align:'center'});
+  doc.setFontSize(5);
+  doc.setTextColor(58,111,160);
+  doc.text(`${bassScale}mm`,xBridgeBass,yBridgeBass+9,{align:'center'});
+  doc.setTextColor(46,148,112);
+  doc.text(`${trebleScale}mm`,xBridgeTreble,yBridgeTreble+9,{align:'center'});
 
-  // Title
-  doc.setFontSize(9);
-  doc.setTextColor(160, 120, 50);
-  doc.text(`Fret Calculator — Bass ${bassScale}mm / Treble ${trebleScale}mm`, xCenter, 10, { align: 'center' });
+  if (perpFret>0) {
+    const pr=rows.find(r=>r.fret===perpFret);
+    if (pr) { doc.setFontSize(4.5); doc.setTextColor(160,120,50);
+      doc.text(`\u22a5 fret ${perpFret}`,xBridgeTreble+2,fretBassY(pr)+0.4); }
+  }
+
+  doc.setFontSize(7.5); doc.setTextColor(160,120,50);
+  doc.text(`Fan Fret \u2014 Bass ${bassScale}mm / Treble ${trebleScale}mm / Perp fret ${perpFret}`,pageW/2,8,{align:'center'});
 
   doc.save(`fretboard-bass${bassScale}-treble${trebleScale}.pdf`);
 }
 
+// ── CSV export ────────────────────────────────────────────────────────────────
 function exportCSV() {
-  const { bass: bassScale, treble: trebleScale } = getScalesMm();
-  const numFrets    = parseInt(document.getElementById('numFrets').value)       || 24;
-  const perpFret    = Math.max(0, parseInt(document.getElementById('perpFret').value) || 0);
-
-  const rows = calcFrets(bassScale, trebleScale, numFrets, perpFret);
+  const { bassScale, trebleScale, numFrets } = getParams();
+  const rows = calcFrets(bassScale, trebleScale, numFrets);
   let csv = 'Fret,Bass Side (mm),Treble Side (mm),Bass Spacing (mm),Treble Spacing (mm)\r\n';
-  rows.forEach(r => {
-    csv += [r.fret, r.bassPos, r.treblePos, r.bassSpacing, r.trebleSpacing].join(',') + '\r\n';
-  });
-
-  const blob = new Blob([csv], { type: 'text/csv' });
+  rows.forEach(r => { csv += [r.fret,r.bassPos,r.treblePos,r.bassSpacing,r.trebleSpacing].join(',')+'\r\n'; });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download = `fret-positions-bass${bassScale}-treble${trebleScale}.csv`;
   a.click();
 }
 
-// Unit handling
+// ── Unit / theme ──────────────────────────────────────────────────────────────
 let currentUnit = 'mm';
 
-function toggleTheme() {
-  document.body.classList.toggle('light');
-  redrawNeck();
-}
-
+function toggleTheme() { document.body.classList.toggle('light'); redrawNeck(); }
 
 function setUnit(unit) {
-  if (unit === currentUnit) return;
-
-  const bassInput    = document.getElementById('bassScale');
-  const trebleInput  = document.getElementById('trebleScale');
-  const bassVal      = parseFloat(bassInput.value)   || 0;
-  const trebleVal    = parseFloat(trebleInput.value) || 0;
-
-  if (unit === 'in') {
-    bassInput.value   = (bassVal   / 25.4).toFixed(4);
-    trebleInput.value = (trebleVal / 25.4).toFixed(4);
-    bassInput.step    = '0.001';
-    trebleInput.step  = '0.001';
-    bassInput.min     = '10'; bassInput.max = '50';
-    trebleInput.min   = '10'; trebleInput.max = '50';
+  if (unit===currentUnit) return;
+  const bi=document.getElementById('bassScale'), ti=document.getElementById('trebleScale');
+  const bv=parseFloat(bi.value)||0, tv=parseFloat(ti.value)||0;
+  if (unit==='in') {
+    bi.value=(bv/25.4).toFixed(4); ti.value=(tv/25.4).toFixed(4);
+    bi.step=ti.step='0.001'; bi.min=ti.min='10'; bi.max=ti.max='50';
   } else {
-    bassInput.value   = (bassVal   * 25.4).toFixed(1);
-    trebleInput.value = (trebleVal * 25.4).toFixed(1);
-    bassInput.step    = '0.5';
-    trebleInput.step  = '0.5';
-    bassInput.min     = '100'; bassInput.max = '1200';
-    trebleInput.min   = '100'; trebleInput.max = '1200';
+    bi.value=(bv*25.4).toFixed(1); ti.value=(tv*25.4).toFixed(1);
+    bi.step=ti.step='0.5'; bi.min=ti.min='100'; bi.max=ti.max='1200';
   }
-
-  currentUnit = unit;
-  document.getElementById('btnMm').classList.toggle('active', unit === 'mm');
-  document.getElementById('btnIn').classList.toggle('active', unit === 'in');
+  currentUnit=unit;
+  document.getElementById('btnMm').classList.toggle('active',unit==='mm');
+  document.getElementById('btnIn').classList.toggle('active',unit==='in');
   render();
 }
 
 function getScalesMm() {
-  const bassRaw   = parseFloat(document.getElementById('bassScale').value)   || (currentUnit === 'mm' ? 648 : 25.512);
-  const trebleRaw = parseFloat(document.getElementById('trebleScale').value) || (currentUnit === 'mm' ? 628 : 24.724);
-  if (currentUnit === 'in') {
-    return { bass: bassRaw * 25.4, treble: trebleRaw * 25.4 };
-  }
-  return { bass: bassRaw, treble: trebleRaw };
+  const br=parseFloat(document.getElementById('bassScale').value)||(currentUnit==='mm'?648:25.512);
+  const tr=parseFloat(document.getElementById('trebleScale').value)||(currentUnit==='mm'?628:24.724);
+  return currentUnit==='in'?{bass:br*25.4,treble:tr*25.4}:{bass:br,treble:tr};
 }
 
 function updateConvertHints() {
-  const bassRaw   = parseFloat(document.getElementById('bassScale').value)   || 0;
-  const trebleRaw = parseFloat(document.getElementById('trebleScale').value) || 0;
-
-  if (currentUnit === 'mm') {
-    document.getElementById('bassConvert').textContent   = `≈ ${(bassRaw   / 25.4).toFixed(3)}″`;
-    document.getElementById('trebleConvert').textContent = `≈ ${(trebleRaw / 25.4).toFixed(3)}″`;
+  const br=parseFloat(document.getElementById('bassScale').value)||0;
+  const tr=parseFloat(document.getElementById('trebleScale').value)||0;
+  if (currentUnit==='mm') {
+    document.getElementById('bassConvert').textContent=`\u2248 ${(br/25.4).toFixed(3)}\u2033`;
+    document.getElementById('trebleConvert').textContent=`\u2248 ${(tr/25.4).toFixed(3)}\u2033`;
   } else {
-    document.getElementById('bassConvert').textContent   = `≈ ${(bassRaw   * 25.4).toFixed(1)} mm`;
-    document.getElementById('trebleConvert').textContent = `≈ ${(trebleRaw * 25.4).toFixed(1)} mm`;
+    document.getElementById('bassConvert').textContent=`\u2248 ${(br*25.4).toFixed(1)} mm`;
+    document.getElementById('trebleConvert').textContent=`\u2248 ${(tr*25.4).toFixed(1)} mm`;
   }
 }
 
-// Init & listeners
+// ── Init ──────────────────────────────────────────────────────────────────────
 ['bassScale','trebleScale','numFrets','perpFret'].forEach(id => {
   document.getElementById(id).addEventListener('input', render);
 });
-
-window.addEventListener('resize', () => {
-  const { bass, treble } = getScalesMm();
-  const numFrets = parseInt(document.getElementById('numFrets').value) || 24;
-  const perpFret = Math.max(0, parseInt(document.getElementById('perpFret').value) || 0);
-  drawNeck(calcFrets(bass, treble, numFrets, perpFret), bass, treble, numFrets, perpFret);
-});
-
+window.addEventListener('resize', redrawNeck);
 render();
