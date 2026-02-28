@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fret Radius Sander</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0c0c10; --panel: #11111a; --border: #1c1e32;
+    --accent: #f0a500; --text: #cdd0e0; --dim: #454870; --green: #30d080;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  header { padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--panel); display: flex; align-items: baseline; gap: 14px; flex-shrink: 0; }
+  header h1 { font-size: 1.1rem; font-weight: 900; color: var(--accent); letter-spacing: 0.08em; }
+  header span { font-size: 0.6rem; color: var(--dim); letter-spacing: 0.2em; }
+  .workspace { display: flex; flex: 1; overflow: hidden; }
+
+  .sidebar { width: 230px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; padding-bottom: 12px; }
+  .sec { font-size: 0.58rem; letter-spacing: 0.22em; color: var(--dim); text-transform: uppercase; padding: 12px 14px 4px; border-top: 1px solid var(--border); }
+  .param { padding: 4px 14px 10px; }
+  .param-label { display: flex; justify-content: space-between; font-size: 0.68rem; margin-bottom: 4px; }
+  .param-label .v { color: var(--accent); }
+  input[type=range] { -webkit-appearance: none; width: 100%; height: 3px; background: var(--border); border-radius: 2px; outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); }
+
+  .presets { display: flex; flex-wrap: wrap; gap: 5px; padding: 6px 14px 10px; }
+  .preset-btn { background: transparent; border: 1px solid var(--border); color: var(--dim); font-family: 'Courier New', monospace; font-size: 0.62rem; padding: 4px 8px; cursor: pointer; transition: all 0.1s; }
+  .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .preset-btn.active { background: var(--accent); color: #0c0c10; border-color: var(--accent); font-weight: bold; }
+
+  .check-row { display: flex; align-items: center; gap: 8px; padding: 5px 14px; font-size: 0.68rem; cursor: pointer; }
+  input[type=checkbox] { accent-color: var(--accent); width: 12px; height: 12px; cursor: pointer; }
+
+  .btn { margin: 7px 14px 3px; padding: 9px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; border: none; cursor: pointer; font-family: inherit; transition: all 0.12s; }
+  .btn-p { background: var(--accent); color: #0c0c10; }
+  .btn-p:hover { background: #ffc844; }
+  .btn-s { background: transparent; color: var(--green); border: 1px solid var(--green); }
+  .btn-s:hover { background: var(--green); color: #0c0c10; }
+
+  .stats { padding: 10px 14px; background: #08080f; border-top: 1px solid var(--border); font-size: 0.6rem; color: var(--dim); line-height: 2.0; margin-top: auto; }
+  .stats span { color: var(--accent); }
+
+  #canvas-container { flex: 1; position: relative; overflow: hidden; }
+  #canvas-container canvas { display: block; }
+
+  .r-display { position: absolute; top: 16px; left: 0; right: 0; text-align: center; pointer-events: none; }
+  .r-display .r-big { font-size: 2.8rem; font-weight: 900; color: var(--accent); letter-spacing: 0.04em; text-shadow: 0 0 30px rgba(240,165,0,0.4); line-height: 1; }
+  .r-display .r-mm  { font-size: 0.75rem; color: var(--dim); letter-spacing: 0.15em; margin-top: 2px; }
+  .r-display .r-sag { font-size: 0.68rem; color: var(--green); letter-spacing: 0.1em; margin-top: 3px; }
+  .hint { position: absolute; bottom: 10px; left: 12px; font-size: 0.55rem; color: var(--dim); pointer-events: none; }
+  #arcDiagram { position: absolute; bottom: 30px; right: 14px; background: rgba(8,8,15,0.85); border: 1px solid var(--border); padding: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>FRET RADIUS SANDER</h1>
+  <span>Parametric Luthier Tool · STL Export</span>
+</header>
+
+<div class="workspace">
+  <aside class="sidebar">
+
+    <div class="sec">Fret Radius</div>
+    <div class="param">
+      <div class="param-label"><span>Radius</span><span class="v" id="radVal">9.5"</span></div>
+      <input type="range" id="sRadius" min="150" max="600" value="241" step="1">
+    </div>
+    <div class="presets">
+      <button class="preset-btn" data-r="184">7.25"</button>
+      <button class="preset-btn active" data-r="241">9.5"</button>
+      <button class="preset-btn" data-r="254">10"</button>
+      <button class="preset-btn" data-r="305">12"</button>
+      <button class="preset-btn" data-r="356">14"</button>
+      <button class="preset-btn" data-r="406">16"</button>
+      <button class="preset-btn" data-r="457">18"</button>
+      <button class="preset-btn" data-r="508">20"</button>
+    </div>
+
+    <div class="sec">Block Size</div>
+    <div class="param">
+      <div class="param-label"><span>Length</span><span class="v" id="lenVal">200 mm</span></div>
+      <input type="range" id="sLen" min="50" max="400" value="200" step="5">
+    </div>
+    <div class="param">
+      <div class="param-label"><span>Width</span><span class="v" id="widVal">70 mm</span></div>
+      <input type="range" id="sWid" min="30" max="120" value="70" step="1">
+    </div>
+    <div class="param">
+      <div class="param-label"><span>Height</span><span class="v" id="htVal">25 mm</span></div>
+      <input type="range" id="sHt" min="8" max="60" value="25" step="1">
+    </div>
+
+    <div class="sec">Quality</div>
+    <div class="param">
+      <div class="param-label"><span>Arc Segments</span><span class="v" id="arcSegsVal">32</span></div>
+      <input type="range" id="sArcSegs" min="4" max="128" value="32" step="2">
+    </div>
+
+    <div class="sec">View</div>
+    <label class="check-row"><input type="checkbox" id="cbWire"> Wireframe</label>
+    <label class="check-row"><input type="checkbox" id="cbSection"> Cross-section</label>
+    <label class="check-row"><input type="checkbox" id="cbGrid" checked> Grid</label>
+
+    <div class="sec">Export</div>
+    <button class="btn btn-p" id="exportSTL">⬇ Export STL</button>
+    <button class="btn btn-s" id="exportOBJ">⬇ Export OBJ</button>
+
+    <div class="stats">
+      RADIUS: <span id="sR">9.5" / 241.3 mm</span><br>
+      ARC DEPTH: <span id="sD">—</span><br>
+      BLOCK: <span id="sDims">200 × 70 × 25 mm</span><br>
+      TRIANGLES: <span id="sTri">—</span>
+    </div>
+  </aside>
+
+  <div id="canvas-container">
+    <div class="r-display">
+      <div class="r-big" id="rBig">9.5"</div>
+      <div class="r-mm"  id="rMm">241.3 mm</div>
+      <div class="r-sag" id="rSag">arc depth: —</div>
+    </div>
+    <canvas id="arcDiagram" width="140" height="70"></canvas>
+    <div class="hint">DRAG to rotate · SCROLL to zoom · RIGHT-DRAG to pan</div>
+  </div>
+</div>
+
+<script>
+// ===== SCENE =====
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07070e);
+
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 8000);
+camera.position.set(200, 100, 260);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+container.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0x334466, 0.9));
+const dl1 = new THREE.DirectionalLight(0xffffff, 1.0); dl1.position.set(1, 2, 1.5); scene.add(dl1);
+const dl2 = new THREE.DirectionalLight(0x4466ff, 0.3); dl2.position.set(-2,-1,-1); scene.add(dl2);
+const dl3 = new THREE.DirectionalLight(0xf0a500, 0.15); dl3.position.set(0,-1,0.5); scene.add(dl3);
+
+const grid = new THREE.GridHelper(600, 30, 0x181828, 0x111120);
+scene.add(grid);
+
+const mat = new THREE.MeshPhongMaterial({ color: 0xc07828, specular: 0x331100, shininess: 30, side: THREE.DoubleSide });
+const wireMat = new THREE.MeshBasicMaterial({ color: 0xf0a500, wireframe: true, opacity: 0.18, transparent: true });
+
+let solidMesh = null, wireMesh = null;
+
+// ===== GEOMETRY =====
+// THREE.Shape profile → THREE.ExtrudeGeometry (true CAD extrude).
+// Shape is drawn in the X-Y plane of Shape coords where X=Z_world, Y=Y_world.
+// ExtrudeGeometry extrudes along +Z_shape, which we then rotate to +X_world.
+
+function buildSanderGeo(R, L, W, H, arcSegs, filletR, filletSegs) {
+  const halfW = W / 2;
+  const Rc         = Math.max(R, halfW + 0.1);
+  const halfAngle  = Math.asin(halfW / Rc);
+  const sagitta    = Rc - Rc * Math.cos(halfAngle);
+  const arcCenterY = -Rc * Math.cos(halfAngle);  // arc center in local coords
+  const fr = Math.max(0, Math.min(filletR, halfW - 0.1, (H - sagitta) * 0.49));
+  const fs = Math.max(2, filletSegs);
+
+  // Arc endpoints Y (where arc meets the vertical walls)
+  const arcEdgeY = arcCenterY + Rc * Math.cos(halfAngle); // = sagitta (always)
+
+  // THREE.Shape: x = Z_world, y = Y_world
+  const shape = new THREE.Shape();
+
+  // ── Trace profile CCW (required for correct front-face winding) ──
+  // Start: bottom-left where arc meets left wall
+  shape.moveTo(-halfW, arcEdgeY);
+
+  // Up left wall
+  if (fr > 0) {
+    shape.lineTo(-halfW, H - fr);
+    // Left top-corner fillet: center at (-halfW+fr, H-fr)
+    // absarc(cx, cy, r, startAngle, endAngle, anticlockwise)
+    // start: pointing left  = angle π
+    // end:   pointing up    = angle π/2
+    // going CCW (anticlockwise=true means standard math CCW)
+    shape.absarc(-halfW + fr, H - fr, fr, Math.PI, Math.PI / 2, true);
+  } else {
+    shape.lineTo(-halfW, H);
+  }
+
+  // Top face: left to right
+  shape.lineTo(fr > 0 ? halfW - fr : halfW, H);
+
+  // Right top-corner fillet: center at (halfW-fr, H-fr)
+  // start: pointing up    = angle π/2
+  // end:   pointing right = angle 0
+  // going CCW
+  if (fr > 0) {
+    shape.absarc(halfW - fr, H - fr, fr, Math.PI / 2, 0, true);
+  }
+
+  // Down right wall to arc edge
+  shape.lineTo(halfW, arcEdgeY);
+
+  // Bottom concave arc: right → through bottom → left
+  // Arc center: (0, arcCenterY), radius Rc
+  // Right point angle from center: atan2(halfW, arcEdgeY - arcCenterY)
+  //   arcEdgeY - arcCenterY = Rc*cos(halfAngle), halfW = Rc*sin(halfAngle)
+  //   → angle from +X = atan2(arcEdgeY-arcCenterY, halfW) ... but Shape uses standard math angles
+  // In shape coords (x=Z, y=Y):
+  //   right point = (halfW, arcEdgeY), center = (0, arcCenterY)
+  //   angle of right point from center = atan2(arcEdgeY-arcCenterY, halfW)
+  //                                    = atan2(Rc*cos(α), Rc*sin(α)) = atan2(cos(α), sin(α))
+  //                                    = π/2 - halfAngle
+  // left point angle = π/2 + halfAngle (mirror)
+  // We want to go from right point to left point going DOWN (through bottom of arc)
+  // Bottom of arc is at angle = -π/2 from center (pointing down in Y)
+  // Going from π/2-halfAngle to π/2+halfAngle the SHORT way goes UP (wrong)
+  // Going the LONG way (clockwise = anticlockwise:false) goes down through bottom ✓
+  const arcStartAngle = Math.PI/2 - halfAngle; // right point
+  const arcEndAngle   = Math.PI/2 + halfAngle; // left point
+  shape.absarc(0, arcCenterY, Rc, arcStartAngle, arcEndAngle, false); // clockwise = through bottom
+
+  // Shape closes automatically back to moveTo
+
+  // ── Extrude ──
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: L,
+    bevelEnabled: false,
+    curveSegments: arcSegs,  // controls arc smoothness in the profile
+  });
+
+  // ExtrudeGeometry extrudes in +Z_shape direction.
+  // Shape is in X-Y plane. After extrude: shape.x→world.x, shape.y→world.y, extrude.z→world.z
+  // We want: shape.x→world.z, shape.y→world.y, extrude→world.x
+  // So: rotate -90° around Y, then translate to center on X axis
+  geo.applyMatrix4(new THREE.Matrix4().makeRotationY(-Math.PI / 2));
+  // After rotation: shape.x (was Z_world) is now -Z_world... need to think carefully.
+  // Actually let's just use: rotate so extrude axis becomes X, then center.
+  // ExtrudeGeometry: vertices are (shapeX, shapeY, depth*t) for t in [0,1]
+  // We want final: (depth*(t-0.5), shapeY, shapeX) → swap and shift
+  // Easier: after rotation by -90° around Y:
+  //   new_x = old_z = depth*t  → shift by -L/2
+  //   new_y = old_y = shapeY   ✓
+  //   new_z = -old_x = -shapeX → we drew shape with x=Z_world, so new_z = -Z_world (wrong sign)
+  // Fix: also flip Z (scale -1 on Z)
+  geo.applyMatrix4(new THREE.Matrix4().makeScale(1, 1, -1));
+  geo.applyMatrix4(new THREE.Matrix4().makeTranslation(-L/2, 0, 0));
+
+  geo.computeVertexNormals();
+
+  return { geo, sagitta, Rc };
+}
+
+// ===== ARC DIAGRAM =====
+function drawDiagram(R, W, sagitta) {
+  const cvs = document.getElementById('arcDiagram');
+  const ctx = cvs.getContext('2d');
+  const cw = cvs.width, ch = cvs.height;
+  ctx.clearRect(0, 0, cw, ch);
+  const pad = 12;
+  const scaleX = (cw - pad*2) / W;
+  const scaleY = Math.min(scaleX, (ch - pad*2) / Math.max(sagitta * 2, 10));
+  const cx = cw/2, arcY = ch - pad - sagitta * scaleY;
+  const halfW = W/2;
+  const halfAngle = Math.asin(Math.min(halfW/R, 0.9999));
+  const arcCenterY_canvas = arcY + R * Math.cos(halfAngle) * scaleY;
+
+  ctx.strokeStyle = '#f0a500'; ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i <= 60; i++) {
+    const angle = halfAngle - (2 * halfAngle * i / 60);
+    const px = cx + R * Math.sin(angle) * scaleX;
+    const py = arcCenterY_canvas - R * Math.cos(angle) * scaleY;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  ctx.strokeStyle = '#30d080'; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(cx, arcY); ctx.lineTo(cx, arcY + sagitta * scaleY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#30d080'; ctx.font = '9px Courier New';
+  ctx.fillText(`↕ ${sagitta.toFixed(2)}mm`, cx+3, arcY + sagitta * scaleY / 2 + 3);
+  ctx.strokeStyle = '#454870'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx - halfW*scaleX, arcY-8); ctx.lineTo(cx + halfW*scaleX, arcY-8); ctx.stroke();
+  ctx.fillStyle = '#454870';
+  ctx.fillText(`${Math.round(W)}mm`, cx-12, arcY-10);
+}
+
+// ===== REBUILD =====
+let lastParams = {};
+
+function inchStr(mm) {
+  const map = { 184:'7.25"', 241:'9.5"', 254:'10"', 305:'12"', 356:'14"', 406:'16"', 457:'18"', 508:'20"' };
+  return map[Math.round(mm)] || (mm/25.4).toFixed(2) + '"';
+}
+
+function rebuildMesh() {
+  const R  = +document.getElementById('sRadius').value;
+  const L  = +document.getElementById('sLen').value;
+  const W  = +document.getElementById('sWid').value;
+  const H  = +document.getElementById('sHt').value;
+  const arcSegs   = +document.getElementById('sArcSegs').value;
+  document.getElementById('arcSegsVal').textContent = arcSegs;
+  const doWire    = document.getElementById('cbWire').checked;
+  const doSection = document.getElementById('cbSection').checked;
+
+  if (solidMesh) { scene.remove(solidMesh); solidMesh.geometry.dispose(); solidMesh = null; }
+  if (wireMesh)  { scene.remove(wireMesh);  wireMesh.geometry.dispose();  wireMesh = null; }
+
+  const { geo, sagitta, Rc } = buildSanderGeo(R, L, W, H, arcSegs, 4, 8);
+
+  renderer.clippingPlanes = doSection
+    ? [new THREE.Plane(new THREE.Vector3(0, 0, -1), 0.5)] : [];
+
+  solidMesh = new THREE.Mesh(geo, mat);
+  solidMesh.position.y = -sagitta;
+  scene.add(solidMesh);
+
+  if (doWire) {
+    wireMesh = new THREE.Mesh(geo, wireMat);
+    wireMesh.position.copy(solidMesh.position);
+    scene.add(wireMesh);
+  }
+
+  grid.position.y = solidMesh.position.y - 1;
+
+  const rStr = inchStr(R);
+  document.getElementById('radVal').textContent = rStr;
+  document.getElementById('rBig').textContent = rStr;
+  document.getElementById('rMm').textContent = Rc.toFixed(1) + ' mm';
+  document.getElementById('rSag').textContent = 'arc depth: ' + sagitta.toFixed(3) + ' mm';
+  document.getElementById('sR').textContent = `${rStr} / ${Rc.toFixed(1)} mm`;
+  document.getElementById('sD').textContent = sagitta.toFixed(3) + ' mm';
+  document.getElementById('sDims').textContent = `${L} × ${W} × ${H} mm`;
+  document.getElementById('sTri').textContent = (geo.index ? geo.index.count / 3 : geo.attributes.position.count / 3).toLocaleString();
+  document.getElementById('lenVal').textContent = L + ' mm';
+  document.getElementById('widVal').textContent = W + ' mm';
+  document.getElementById('htVal').textContent  = H + ' mm';
+
+  document.querySelectorAll('.preset-btn').forEach(b =>
+    b.classList.toggle('active', Math.abs(+b.dataset.r - R) < 2));
+
+  drawDiagram(Rc, W, sagitta);
+  lastParams = { R, L, W, H, sagitta };
+}
+
+// ===== ORBIT CONTROLS =====
+let dragging = false, rightDrag = false, lastMX = 0, lastMY = 0;
+let theta = 0.6, phi = 0.78, orbitR = 340;
+const panTarget = new THREE.Vector3(0, 0, 0);
+
+function syncCamera() {
+  camera.position.set(
+    panTarget.x + orbitR * Math.sin(phi) * Math.sin(theta),
+    panTarget.y + orbitR * Math.cos(phi),
+    panTarget.z + orbitR * Math.sin(phi) * Math.cos(theta)
+  );
+  camera.lookAt(panTarget);
+}
+syncCamera();
+
+const cvs = renderer.domElement;
+cvs.addEventListener('contextmenu', e => e.preventDefault());
+cvs.addEventListener('mousedown', e => { dragging=true; rightDrag=e.button===2; lastMX=e.clientX; lastMY=e.clientY; });
+window.addEventListener('mouseup', () => dragging=false);
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx=e.clientX-lastMX, dy=e.clientY-lastMY;
+  lastMX=e.clientX; lastMY=e.clientY;
+  if (rightDrag) {
+    const s = orbitR * 0.001;
+    const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0,1,0),
+      new THREE.Vector3().subVectors(camera.position, panTarget).normalize()).normalize();
+    panTarget.addScaledVector(right, dx*s); panTarget.y -= dy*s;
+  } else {
+    theta -= dx*0.006;
+    phi = Math.max(0.05, Math.min(Math.PI-0.05, phi+dy*0.006));
+  }
+  syncCamera();
+});
+cvs.addEventListener('wheel', e => {
+  orbitR = Math.max(40, Math.min(1200, orbitR+e.deltaY*0.4));
+  syncCamera(); e.preventDefault();
+}, { passive: false });
+
+function resize() {
+  const w=container.clientWidth, h=container.clientHeight;
+  renderer.setSize(w, h); camera.aspect=w/h; camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+(function loop() { requestAnimationFrame(loop); renderer.render(scene, camera); })();
+
+// ===== UI =====
+document.getElementById('sRadius').addEventListener('input', rebuildMesh);
+document.getElementById('sLen').addEventListener('input', rebuildMesh);
+document.getElementById('sWid').addEventListener('input', rebuildMesh);
+document.getElementById('sHt').addEventListener('input', rebuildMesh);
+document.getElementById('sArcSegs').addEventListener('input', rebuildMesh);
+document.getElementById('cbWire').addEventListener('change', rebuildMesh);
+document.getElementById('cbSection').addEventListener('change', rebuildMesh);
+document.getElementById('cbGrid').addEventListener('change', e => grid.visible = e.target.checked);
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('sRadius').value = +btn.dataset.r;
+    rebuildMesh();
+  });
+});
+
+// ===== STL EXPORT =====
+document.getElementById('exportSTL').addEventListener('click', () => {
+  if (!solidMesh) return;
+  const geo = solidMesh.geometry;
+  const pos = geo.getAttribute('position');
+  const idx = geo.index;
+  const triCount = idx ? idx.count / 3 : pos.count / 3;
+  const yOff = solidMesh.position.y;
+
+  const buf = new ArrayBuffer(84 + 50 * triCount);
+  const dv  = new DataView(buf);
+  const hdr = 'Fret Radius Sander';
+  for (let i=0; i<80; i++) dv.setUint8(i, i < hdr.length ? hdr.charCodeAt(i) : 0);
+  dv.setUint32(80, triCount, true);
+  let off = 84;
+
+  for (let i=0; i<triCount; i++) {
+    const ai=idx ? idx.getX(i*3)   : i*3;
+    const bi=idx ? idx.getX(i*3+1) : i*3+1;
+    const ci=idx ? idx.getX(i*3+2) : i*3+2;
+    const ax=pos.getX(ai), ay=pos.getY(ai)+yOff, az=pos.getZ(ai);
+    const bx=pos.getX(bi), by=pos.getY(bi)+yOff, bz=pos.getZ(bi);
+    const cx=pos.getX(ci), cy=pos.getY(ci)+yOff, cz=pos.getZ(ci);
+    const ux=bx-ax,uy=by-ay,uz=bz-az, vx=cx-ax,vy=cy-ay,vz=cz-az;
+    const nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+    const nl=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+    dv.setFloat32(off,nx/nl,true); off+=4;
+    dv.setFloat32(off,ny/nl,true); off+=4;
+    dv.setFloat32(off,nz/nl,true); off+=4;
+    for (const [x,y,z] of [[ax,ay,az],[bx,by,bz],[cx,cy,cz]]) {
+      dv.setFloat32(off,x,true);off+=4; dv.setFloat32(off,y,true);off+=4; dv.setFloat32(off,z,true);off+=4;
+    }
+    dv.setUint16(off,0,true); off+=2;
+  }
+  const p = lastParams;
+  const rLabel = inchStr(p.R).replace('"','in').replace('.','_');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], { type: 'application/octet-stream' }));
+  a.download = `radius_sander_R${rLabel}_${p.L}x${p.W}x${p.H}mm.stl`;
+  a.click();
+});
+
+// ===== OBJ EXPORT =====
+document.getElementById('exportOBJ').addEventListener('click', () => {
+  if (!solidMesh) return;
+  const geo = solidMesh.geometry;
+  const pos = geo.getAttribute('position');
+  const norm = geo.getAttribute('normal');
+  const idx = geo.index;
+  const yOff = solidMesh.position.y;
+  let obj = '# Fret Radius Sander\n';
+  for (let i=0;i<pos.count;i++) obj+=`v ${pos.getX(i).toFixed(4)} ${(pos.getY(i)+yOff).toFixed(4)} ${pos.getZ(i).toFixed(4)}\n`;
+  for (let i=0;i<norm.count;i++) obj+=`vn ${norm.getX(i).toFixed(4)} ${norm.getY(i).toFixed(4)} ${norm.getZ(i).toFixed(4)}\n`;
+  const tc=idx.count/3;
+  for (let i=0;i<tc;i++) {
+    const a=idx.getX(i*3)+1, b=idx.getX(i*3+1)+1, c=idx.getX(i*3+2)+1;
+    obj+=`f ${a}//${a} ${b}//${b} ${c}//${c}\n`;
+  }
+  const el=document.createElement('a');
+  el.href=URL.createObjectURL(new Blob([obj],{type:'text/plain'}));
+  el.download='radius_sander.obj'; el.click();
+});
+
+rebuildMesh();
+</script>
+</body>
+</html>
