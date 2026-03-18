@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QMK Visual Editor</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="logo">QMK<span>.</span>edit</div>
+  <div class="header-actions">
+    <div class="folder-badge" id="folderBadge">No folder open</div>
+    <button class="btn" id="openFolderBtn">Open QMK Folder</button>
+    <button class="btn btn-accent" id="saveAllBtn" disabled>Save All</button>
+  </div>
+</header>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-panel="home">
+        <span class="nav-icon">~</span>
+        <span class="nav-label">Home</span>
+      </div>
+      <div class="nav-item" data-panel="keymap">
+        <span class="nav-icon">K</span>
+        <span class="nav-label">Keymap</span>
+      </div>
+      <div class="nav-item" data-panel="hardware">
+        <span class="nav-icon">H</span>
+        <span class="nav-label">Hardware</span>
+      </div>
+      <div class="nav-item" data-panel="trackball">
+        <span class="nav-icon">T</span>
+        <span class="nav-label">Trackball</span>
+      </div>
+      <div class="nav-item" data-panel="split">
+        <span class="nav-icon">S</span>
+        <span class="nav-label">Split</span>
+      </div>
+      <div class="nav-item" data-panel="features">
+        <span class="nav-icon">F</span>
+        <span class="nav-label">Features</span>
+      </div>
+      <div class="nav-item" data-panel="layout">
+        <span class="nav-icon">L</span>
+        <span class="nav-label">Layout</span>
+      </div>
+      <div class="nav-item" data-panel="preview">
+        <span class="nav-icon">//</span>
+        <span class="nav-label">Preview</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="font-size:10px;color:var(--text3);line-height:1.6;">
+        Local only. No data leaves your machine.<br>
+        Uses File System Access API.
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" id="mainContent">
+
+    <!-- HOME -->
+    <div class="panel active" id="panel-home">
+      <div id="welcomeScreen" class="welcome">
+        <div class="welcome-icon"></div>
+        <h2>QMK Visual Editor</h2>
+        <p>Open your QMK keyboard folder to visually configure everything — pins, keymap, trackball, split, and features. All edits write directly to your source files.</p>
+        <div class="welcome-features">
+          <div class="feature-item">
+            <span class="feature-icon"></span>
+            <div class="feature-text">
+              <strong>Hardware Pins</strong>
+              <span>Matrix, SPI, I2C, encoders — all visually mapped</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon"></span>
+            <div class="feature-text">
+              <strong>Keymap Editor</strong>
+              <span>Visual layers, tap-dance, mod-tap</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">T</span>
+            <div class="feature-text">
+              <strong>PMW3360</strong>
+              <span>CPI, drag scroll, auto-mouse layer</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">S</span>
+            <div class="feature-text">
+              <strong>Split Config</strong>
+              <span>UART, side detection, transport</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-accent" id="openFolderBtn2" style="margin-top:8px;"> Open QMK Keyboard Folder</button>
+        <p style="font-size:11px;margin-top:4px;">Select the folder containing your keyboard's <code style="color:var(--accent)">config.h</code>, <code style="color:var(--accent)">keymap.c</code>, etc.</p>
+      </div>
+
+      <div id="fileStatusScreen" style="display:none; padding:28px;">
+        <div class="panel-header">
+          <div class="panel-title">Project Files</div>
+          <div class="panel-subtitle">Detected files in your QMK keyboard folder</div>
+        </div>
+        <div class="file-status" id="fileStatusList"></div>
+        <div class="info-box">
+          Missing files will be created with sensible defaults for RP2040 + PMW3360 + split when you save.
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-accent" onclick="loadAllFiles()">Load Files</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEYMAP -->
+    <div class="panel" id="panel-keymap">
+      <div class="panel-header">
+        <div class="panel-title">Keymap Editor</div>
+        <div class="panel-subtitle" id="keymapSubtitle">keymap.c — click a key to assign a keycode</div>
+      </div>
+
+      <div class="layer-tabs" id="layerTabs"></div>
+
+      <div class="keyboard-canvas">
+        <div id="keyboardVisual"></div>
+      </div>
+
+      <div class="row" style="gap:16px;align-items:flex-start;">
+        <div class="flex-1">
+          <div class="key-editor">
+            <h3>Key Assignment — <span id="selectedKeyLabel" style="color:var(--accent)">click a key</span></h3>
+            <div class="keycode-search">
+              <span class="search-icon">/</span>
+              <input type="text" id="keycodeSearch" placeholder="Search keycodes...">
+            </div>
+            <div class="keycode-categories" id="keycodeCats"></div>
+            <div class="keycode-grid" id="keycodeGrid"></div>
+          </div>
+        </div>
+        <div style="width:240px;">
+          <div class="section">
+            <div class="section-header">
+              <span class="section-title">Layer Config</span>
+            </div>
+            <div class="section-body">
+              <div class="field">
+                <label>Layer Name</label>
+                <input type="text" id="layerNameInput" placeholder="e.g. BASE, NAV, NUM">
+              </div>
+              <div class="field" style="margin-top:10px;">
+                <label>Rows × Cols</label>
+                <div style="display:flex;gap:8px;">
+                  <input type="number" id="kbRows" value="4" min="1" max="12" style="width:70px;">
+                  <input type="number" id="kbCols" value="6" min="1" max="16" style="width:70px;">
+                  <button class="btn btn-sm" onclick="rebuildKeyboard()">↺ Rebuild</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Matrix Timing <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>DEBOUNCE <span class="hint">ms, default 5</span></label>
+              <input type="number" id="cfgDebounce" value="5" min="0" max="100">
+            </div>
+            <div class="field">
+              <label>MATRIX_IO_DELAY <span class="hint">us, default 30</span></label>
+              <input type="number" id="cfgMatrixIoDelay" value="30" min="0" max="1000">
+            </div>
+            <div class="field">
+              <label>USB_POLLING_INTERVAL_MS <span class="hint">default 1</span></label>
+              <input type="number" id="cfgUsbPolling" value="1" min="1" max="10">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Tap / Hold Behavior <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>TAPPING_TERM <span class="hint">ms, default 200</span></label>
+              <input type="number" id="cfgTappingTerm" value="200" min="50" max="1000">
+            </div>
+            <div class="field">
+              <label>QUICK_TAP_TERM <span class="hint">ms, 0=disabled</span></label>
+              <input type="number" id="cfgQuickTapTerm" value="0" min="0" max="500">
+            </div>
+            <div class="field">
+              <label>ONESHOT_TIMEOUT <span class="hint">ms, default 300</span></label>
+              <input type="number" id="cfgOneshotTimeout" value="300" min="0" max="5000">
+            </div>
+            <div class="field">
+              <label>COMBO_TERM <span class="hint">ms, default TAPPING_TERM</span></label>
+              <input type="number" id="cfgComboTerm" value="50" min="0" max="500">
+            </div>
+            <div class="field">
+              <label>LEADER_TIMEOUT <span class="hint">ms, default 300</span></label>
+              <input type="number" id="cfgLeaderTimeout" value="300" min="0" max="5000">
+            </div>
+          </div>
+          <div class="toggles-grid" style="margin-top:14px;">
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>PERMISSIVE_HOLD</strong><span>Trigger hold if another key pressed before TAPPING_TERM</span></div>
+              <div class="toggle" id="tgl-permissive-hold" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>HOLD_ON_OTHER_KEY_PRESS</strong><span>Select hold immediately when another key pressed</span></div>
+              <div class="toggle" id="tgl-hold-on-other" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>RETRO_TAPPING</strong><span>Tap after TAPPING_TERM if no other key interrupted</span></div>
+              <div class="toggle" id="tgl-retro-tapping" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>LOCKING_SUPPORT_ENABLE</strong><span>Mechanical locking switch support</span></div>
+              <div class="toggle" id="tgl-locking" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>LOCKING_RESYNC_ENABLE</strong><span>Keep LED state in sync with lock switch</span></div>
+              <div class="toggle" id="tgl-locking-resync" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>MOUSE_EXTENDED_REPORT</strong><span>Extended mouse reports (-32767 to 32767)</span></div>
+              <div class="toggle" id="tgl-mouse-ext" onclick="toggleTgl(this)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HARDWARE -->
+    <div class="panel" id="panel-hardware">
+      <div class="panel-header">
+        <div class="panel-title">Hardware / Pins</div>
+        <div class="panel-subtitle">config.h — RP2040 pin assignments</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">RP2040 Pin Map <span class="section-badge">live</span></span>
+          <span style="display:flex;align-items:center;gap:10px;">
+            <span class="chevron">v</span>
+          </span>
+        </div>
+        <div class="section-body" style="padding:12px;">
+          <div style="overflow-x:auto;">
+            <svg id="rp2040Svg" viewBox="-10 0 820 660" xmlns="http://www.w3.org/2000/svg"
+                 style="width:100%;max-width:760px;display:block;font-family:JetBrains Mono,monospace;"></svg>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;" id="pinMapLegendFull"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Matrix Pins <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+
+          <!-- Hidden legacy inputs kept for parser/generator compat -->
+          <input type="hidden" id="matrixRowPins">
+          <input type="hidden" id="matrixColPins">
+
+          <div class="info-box" style="margin-bottom:14px;">
+            Click any <strong style="color:var(--accent);">row</strong> or <strong style="color:var(--accent2);">col</strong> header cell to assign a GPIO pin. Use <strong>+/−</strong> to add or remove rows and columns. Each intersection shows which switch connects those two pins.
+          </div>
+
+          <!-- Controls bar -->
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text3);">Rows:</span>
+              <button class="btn btn-sm" id="matrixRemoveRow">−</button>
+              <span id="matrixRowCount" style="font-size:13px;min-width:20px;text-align:center;">4</span>
+              <button class="btn btn-sm" id="matrixAddRow">+</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text3);">Cols:</span>
+              <button class="btn btn-sm" id="matrixRemoveCol">−</button>
+              <span id="matrixColCount" style="font-size:13px;min-width:20px;text-align:center;">6</span>
+              <button class="btn btn-sm" id="matrixAddCol">+</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+              <label style="font-size:11px;text-transform:none;letter-spacing:0;">Diode Dir:</label>
+              <select id="diodeDir" style="width:auto;">
+                <option value="COL2ROW">COL2ROW</option>
+                <option value="ROW2COL">ROW2COL</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Matrix grid -->
+          <div style="overflow-x:auto;">
+            <div id="matrixGrid" style="display:inline-block;min-width:100%;"></div>
+          </div>
+
+          <!-- Right-half col mirroring -->
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Reverse cols for right half</strong>
+                <span>Adds MATRIX_COL_PINS_RIGHT with columns in reverse order — fixes mirrored keys on right half</span>
+              </div>
+              <div class="toggle" id="tgl-right-col-reverse" onclick="toggleTgl(this)"></div>
+            </div>
+          </div>
+          <!-- Hidden inputs for right-half pins (used by generator) -->
+          <input type="hidden" id="matrixRowPinsRight">
+          <input type="hidden" id="matrixColPinsRight">
+          <!-- Matrix pin conflict banner -->
+          <div id="matrixConflictBox" style="display:none;margin-top:10px;background:var(--danger)10;border:1px solid var(--danger)40;border-radius:var(--radius);padding:10px 14px;font-size:11px;color:var(--text2);">
+            <div style="font-weight:600;color:var(--danger);margin-bottom:6px;">Pin conflict — same GPIO used in multiple rows/cols. Will not compile.</div>
+            <div id="matrixConflictList" style="display:flex;flex-direction:column;gap:4px;"></div>
+          </div>
+
+          <!-- Pin picker popup -->
+          <div id="pinPicker" style="display:none;position:fixed;z-index:9000;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:14px;box-shadow:0 8px 32px #00000060;min-width:260px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-family:var(--font-ui);font-weight:700;font-size:13px;" id="pinPickerTitle">Assign Pin</span>
+              <button class="btn btn-sm btn-danger" onclick="clearPickerPin()">Clear</button>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">RP2040 GPIO — used pins shown dimmed</div>
+            <div id="pinPickerGrid" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+            <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+              <input type="text" id="pinPickerCustom" placeholder="Custom pin name..." style="flex:1;font-size:11px;">
+              <button class="btn btn-sm" onclick="applyCustomPin()">Set</button>
+            </div>
+            <button class="btn btn-sm" style="margin-top:8px;width:100%;text-align:center;" onclick="closePinPicker()">Done</button>
+          </div>
+          <div id="pinPickerOverlay" style="display:none;position:fixed;inset:0;z-index:8999;" onclick="closePinPicker()"></div>
+
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">USB / Boot <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>Bootloader</label>
+              <select id="bootloader">
+                <option value="rp2040">rp2040 (UF2)</option>
+                <option value="rp2040-e4">rp2040-e4</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Processor</label>
+              <select id="processor">
+                <option value="RP2040">RP2040</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Board</label>
+              <select id="board">
+                <option value="GENERIC_RP_RP2040">Generic RP2040</option>
+                <option value="ADAFRUIT_KB2040">Adafruit KB2040</option>
+                <option value="SPARKFUN_PRO_MICRO_RP2040">SparkFun Pro Micro RP2040</option>
+                <option value="WAVESHARE_RP2040_ZERO">Waveshare Zero</option>
+                <option value="SEEED_XIAO_RP2040">Seeed XIAO RP2040</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">RGB / LEDs <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>RGB Data Pin</label>
+              <input type="text" id="rgbPin" placeholder="GP16">
+            </div>
+            <div class="field">
+              <label>LED Count</label>
+              <input type="number" id="rgbCount" value="0" min="0" max="300">
+            </div>
+            <div class="field">
+              <label>RGB Type</label>
+              <select id="rgbType">
+                <option value="none">None</option>
+                <option value="WS2812">WS2812</option>
+                <option value="SK6812RGBW">SK6812RGBW</option>
+                <option value="APA102">APA102</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Encoders <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-2">
+            <div class="field">
+              <label>Encoder A Pin (Left)</label>
+              <input type="text" id="encAPin" placeholder="GP20">
+            </div>
+            <div class="field">
+              <label>Encoder B Pin (Left)</label>
+              <input type="text" id="encBPin" placeholder="GP21">
+            </div>
+            <div class="field">
+              <label>Encoder A Pin (Right)</label>
+              <input type="text" id="encAPin2" placeholder="GP20">
+            </div>
+            <div class="field">
+              <label>Encoder B Pin (Right)</label>
+              <input type="text" id="encBPin2" placeholder="GP21">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TRACKBALL -->
+    <div class="panel" id="panel-trackball">
+      <div class="panel-header">
+        <div class="panel-title">PMW3360 Trackball</div>
+        <div class="panel-subtitle">config.h + rules.mk — SPI pointing device configuration</div>
+      </div>
+
+      <div class="warn-box">
+        Note: PMW3360 uses SPI. Make sure your SPI pins don't conflict with split serial. Default SPI0 on RP2040: SCK=GP2, MOSI=GP3, MISO=GP4.
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">SPI / Wiring <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>SPI Bus</label>
+              <select id="spiBus">
+                <option value="SPI_DRIVER">SPI0 — SPID0 (SCK=GP2/6/18/22)</option>
+                <option value="SPI_DRIVER_1">SPI1 — SPID1 (SCK=GP10/14/26)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>SCK Pin</label>
+              <input type="text" id="spiSck" placeholder="GP2" value="GP2">
+            </div>
+            <div class="field">
+              <label>MOSI Pin</label>
+              <input type="text" id="spiMosi" placeholder="GP3" value="GP3">
+            </div>
+            <div class="field">
+              <label>MISO Pin</label>
+              <input type="text" id="spiMiso" placeholder="GP4" value="GP4">
+            </div>
+            <div class="field">
+              <label>CS (Chip Select) Pin</label>
+              <input type="text" id="spiCs" placeholder="GP5" value="GP5">
+            </div>
+            <div class="field">
+              <label>Which Half?</label>
+              <select id="tbSide">
+                <option value="right">Right half</option>
+                <option value="left">Left half</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">PMW3360 Settings <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>CPI (DPI) <span class="hint">100–12000</span></label>
+              <input type="number" id="tbCpi" value="1600" min="100" max="12000" step="100">
+            </div>
+          </div>
+
+          <!-- Visual Orientation Picker -->
+          <div style="margin-top:18px;">
+            <label style="display:block;margin-bottom:10px;">Trackball Orientation <span class="hint">drag the dial or use presets — sets ROTATIONAL_TRANSFORM_ANGLE</span></label>
+            <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+
+              <!-- Compass Dial -->
+              <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <div style="position:relative;width:140px;height:140px;cursor:grab;" id="orientDial">
+                  <svg id="orientSvg" width="140" height="140" viewBox="0 0 140 140">
+                    <!-- Outer ring -->
+                    <circle cx="70" cy="70" r="66" fill="none" stroke="var(--border2)" stroke-width="1.5"/>
+                    <circle cx="70" cy="70" r="58" fill="var(--surface3)" stroke="var(--border)" stroke-width="1"/>
+                    <!-- Tick marks -->
+                    <g id="ticks"></g>
+                    <!-- Ball body -->
+                    <circle cx="70" cy="70" r="28" fill="url(#ballGrad)" stroke="var(--accent)" stroke-width="1.5" stroke-opacity="0.5"/>
+                    <defs>
+                      <radialGradient id="ballGrad" cx="38%" cy="35%">
+                        <stop offset="0%" stop-color="#3a4060"/>
+                        <stop offset="100%" stop-color="#1a1e29"/>
+                      </radialGradient>
+                    </defs>
+                    <!-- Direction arrow -->
+                    <g id="orientArrow" transform="rotate(0,70,70)">
+                      <line x1="70" y1="70" x2="70" y2="20" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+                      <polygon points="70,12 66,22 74,22" fill="var(--accent)"/>
+                      <!-- Arrow label -->
+                      <text x="70" y="9" text-anchor="middle" font-size="7" fill="var(--accent)" font-family="JetBrains Mono,monospace">↑</text>
+                    </g>
+                    <!-- Crosshair labels -->
+                    <text x="70" y="8" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="JetBrains Mono,monospace">0°</text>
+                    <text x="134" y="73" text-anchor="end" font-size="8" fill="var(--text3)" font-family="JetBrains Mono,monospace">90°</text>
+                    <text x="70" y="137" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="JetBrains Mono,monospace">180°</text>
+                    <text x="6" y="73" text-anchor="start" font-size="8" fill="var(--text3)" font-family="JetBrains Mono,monospace">270°</text>
+                  </svg>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <input type="number" id="tbRotation" value="0" min="0" max="359" step="1"
+                    style="width:70px;text-align:center;"
+                    oninput="setOrientAngle(parseInt(this.value)||0)">
+                  <span style="color:var(--text3);font-size:11px;">degrees</span>
+                </div>
+              </div>
+
+              <!-- Presets + Invert -->
+              <div style="display:flex;flex-direction:column;gap:12px;flex:1;min-width:180px;">
+                <div>
+                  <label style="display:block;margin-bottom:6px;">Quick Presets</label>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+                    <button class="btn btn-sm orient-preset" data-angle="0">↑ 0° (default)</button>
+                    <button class="btn btn-sm orient-preset" data-angle="90">→ 90°</button>
+                    <button class="btn btn-sm orient-preset" data-angle="180">↓ 180°</button>
+                    <button class="btn btn-sm orient-preset" data-angle="270">← 270°</button>
+                    <button class="btn btn-sm orient-preset" data-angle="45">↗ 45°</button>
+                    <button class="btn btn-sm orient-preset" data-angle="315">↖ 315°</button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style="display:block;margin-bottom:6px;">Axis Adjustments</label>
+                  <div style="display:flex;flex-direction:column;gap:6px;">
+                    <div class="toggle-row">
+                      <div class="toggle-label">
+                        <strong>Invert X</strong>
+                        <span>Flip left/right movement</span>
+                      </div>
+                      <div class="toggle" id="tgl-invertx" onclick="toggleTgl(this)"></div>
+                    </div>
+                    <div class="toggle-row">
+                      <div class="toggle-label">
+                        <strong>Invert Y</strong>
+                        <span>Flip up/down movement</span>
+                      </div>
+                      <div class="toggle" id="tgl-inverty" onclick="toggleTgl(this)"></div>
+                    </div>
+                    <div class="toggle-row">
+                      <div class="toggle-label">
+                        <strong>Swap X/Y</strong>
+                        <span>Rotate axes 90° (no angle needed)</span>
+                      </div>
+                      <div class="toggle" id="tgl-swapxy" onclick="toggleTgl(this)"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-box" style="margin:0;font-size:10px;">
+                  <strong style="color:var(--accent);">Tip:</strong> If your ball moves diagonally when you push straight, adjust the angle. If it moves in the wrong axis entirely, use Swap X/Y. If direction is reversed, use Invert.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="toggles-grid" style="margin-top:14px;">
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Drag Scroll</strong>
+                <span>Ball scrolls instead of moves cursor</span>
+              </div>
+              <div class="toggle" id="tgl-dragscroll" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Auto Mouse Layer</strong>
+                <span>Activates layer on trackball move</span>
+              </div>
+              <div class="toggle" id="tgl-automouse" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Scroll Acceleration</strong>
+                <span>Faster ball = faster scroll</span>
+              </div>
+              <div class="toggle" id="tgl-scrollaccel" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Combined Pointing</strong>
+                <span>Trackball on slave half</span>
+              </div>
+              <div class="toggle" id="tgl-combined" onclick="toggleTgl(this)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="autoMouseSection">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Auto Mouse Layer Settings <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>Auto Mouse Layer</label>
+              <input type="number" id="autoMouseLayer" value="1" min="0" max="15">
+            </div>
+            <div class="field">
+              <label>Timeout (ms)</label>
+              <input type="number" id="autoMouseTimeout" value="650" min="100" max="5000">
+            </div>
+            <div class="field">
+              <label>Debounce (ms)</label>
+              <input type="number" id="autoMouseDebounce" value="25" min="0" max="200">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">rules.mk Entries <span class="section-badge file">rules.mk</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="toggles-grid">
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>POINTING_DEVICE_ENABLE</strong>
+                <span>Required for any pointing device</span>
+              </div>
+              <div class="toggle on" id="tgl-pde" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPI_DRIVER_REQUIRED</strong>
+                <span>Needed for PMW3360</span>
+              </div>
+              <div class="toggle on" id="tgl-spi" onclick="toggleTgl(this)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPLIT -->
+    <div class="panel" id="panel-split">
+      <div class="panel-header">
+        <div class="panel-title">Split Configuration</div>
+        <div class="panel-subtitle">config.h + rules.mk — handwired split keyboard settings</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Transport / Serial <span class="section-badge file">rules.mk + config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-2">
+            <div class="field">
+              <label>Serial Driver</label>
+              <select id="serialDriver" onchange="updateSerialDriverUI()">
+                <option value="vendor">vendor — Native USB (recommended, no wires)</option>
+                <option value="serial">serial — PIO half-duplex (single wire, RP2040)</option>
+                <option value="bitbang">bitbang — Software serial (any pin, slower)</option>
+              </select>
+            </div>
+            <div class="field" id="serialPinField" style="display:none;">
+              <label>Serial Pin <span class="hint" id="serialPinHint">SOFT_SERIAL_PIN</span></label>
+              <input type="text" id="serialPin" placeholder="GP1" value="GP1">
+            </div>
+            <div class="field" id="serialSpeedField" style="display:none;">
+              <label>Bitbang Speed <span class="hint">SELECT_SOFT_SERIAL_SPEED</span></label>
+              <select id="serialSpeed">
+                <option value="1">1 — 460800 baud</option>
+                <option value="2">2 — 230400 baud</option>
+                <option value="3">3 — 115200 baud</option>
+                <option value="4">4 — 57600 baud</option>
+                <option value="5">5 — 38400 baud</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Side Detection <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-2">
+            <div class="field">
+              <label>Detection Method</label>
+              <select id="sideDetect">
+                <option value="pin">SPLIT_HAND_PIN — dedicated GPIO</option>
+                <option value="eeprom">EE_HANDS — set via QMK flashing</option>
+                <option value="matrix">SPLIT_HAND_MATRIX_GRID</option>
+              </select>
+            </div>
+            <div class="field" id="sideDetectPinField">
+              <label>Hand Pin</label>
+              <input type="text" id="handPin" placeholder="GP25" value="GP25">
+            </div>
+          </div>
+          <div class="info-box" style="margin-top:12px;margin-bottom:0;">
+            SPLIT_HAND_PIN: tie the pin HIGH on one half (right), LOW on the other (left) via pull resistor or VCC/GND wiring.
+          </div>
+          <div style="margin-top:14px;">
+            <div class="form-grid form-grid-2">
+              <div class="field">
+                <label>Master Side <span class="hint">which half is plugged into USB</span></label>
+                <select id="masterSide">
+                  <option value="none">Auto-detect (SPLIT_USB_DETECT)</option>
+                  <option value="left">MASTER_LEFT — left half is master</option>
+                  <option value="right">MASTER_RIGHT — right half is master</option>
+                </select>
+              </div>
+            </div>
+            <div class="info-box" style="margin-top:8px;margin-bottom:0;">
+              MASTER_LEFT / MASTER_RIGHT: hardcodes which half is the USB master. Use when auto-detect is unreliable. Mutually exclusive with SPLIT_USB_DETECT.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Split Features <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="toggles-grid">
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_USB_DETECT</strong>
+                <span>Auto-detect USB master (ignored if MASTER_LEFT/RIGHT set)</span>
+              </div>
+              <div class="toggle on" id="tgl-usb-detect" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_LAYER_STATE_ENABLE</strong>
+                <span>Sync layer state across halves</span>
+              </div>
+              <div class="toggle on" id="tgl-layer-sync" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_LED_STATE_ENABLE</strong>
+                <span>Sync LED/RGB state</span>
+              </div>
+              <div class="toggle" id="tgl-led-sync" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_MODS_ENABLE</strong>
+                <span>Sync modifier state</span>
+              </div>
+              <div class="toggle on" id="tgl-mods-sync" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_TRANSPORT_MIRROR</strong>
+                <span>Mirror matrix on master side</span>
+              </div>
+              <div class="toggle on" id="tgl-mirror" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_WATCHDOG_ENABLE</strong>
+                <span>Watchdog for split comms</span>
+              </div>
+              <div class="toggle" id="tgl-watchdog" onclick="toggleTgl(this)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="panel" id="panel-features">
+      <div class="panel-header">
+        <div class="panel-title">Features</div>
+        <div class="panel-subtitle">rules.mk — enable/disable QMK feature modules</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title"> Core Features <span class="section-badge file">rules.mk</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="toggles-grid">
+            <div class="toggle-row"><div class="toggle-label"><strong>NKRO_ENABLE</strong><span>N-key rollover</span></div><div class="toggle on" id="tgl-nkro" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>BOOTMAGIC_ENABLE</strong><span>Hold key on boot to enter bootloader</span></div><div class="toggle on" id="tgl-bootmagic" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>MOUSEKEY_ENABLE</strong><span>Mouse keys in keymap</span></div><div class="toggle" id="tgl-mousekey" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>EXTRAKEY_ENABLE</strong><span>Audio/system controls</span></div><div class="toggle on" id="tgl-extrakey" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>CONSOLE_ENABLE</strong><span>Debug console (hid_listen)</span></div><div class="toggle" id="tgl-console" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>COMMAND_ENABLE</strong><span>Magic commands</span></div><div class="toggle" id="tgl-command" onclick="toggleTgl(this)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Advanced Features <span class="section-badge file">rules.mk</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="toggles-grid">
+            <div class="toggle-row"><div class="toggle-label"><strong>TAP_DANCE_ENABLE</strong><span>Multi-tap key actions</span></div><div class="toggle" id="tgl-tapdance" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>COMBO_ENABLE</strong><span>Chord multiple keys</span></div><div class="toggle" id="tgl-combo" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>KEY_OVERRIDE_ENABLE</strong><span>Override key+modifier combos</span></div><div class="toggle" id="tgl-keyoverride" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>ENCODER_ENABLE</strong><span>Rotary encoder support</span></div><div class="toggle" id="tgl-encoder" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>OLED_ENABLE</strong><span>OLED display support</span></div><div class="toggle" id="tgl-oled" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>WPM_ENABLE</strong><span>Words-per-minute tracking</span></div><div class="toggle" id="tgl-wpm" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>AUTOCORRECT_ENABLE</strong><span>Auto-correct words while typing</span></div><div class="toggle" id="tgl-autocorrect" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>CAPS_WORD_ENABLE</strong><span>One-shot caps lock for a word</span></div><div class="toggle" id="tgl-capsword" onclick="toggleTgl(this)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">RGB Features <span class="section-badge file">rules.mk</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="toggles-grid">
+            <div class="toggle-row"><div class="toggle-label"><strong>RGBLIGHT_ENABLE</strong><span>Per-key underglow / RGB strips</span></div><div class="toggle" id="tgl-rgblight" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>RGB_MATRIX_ENABLE</strong><span>Full RGB matrix (per-key)</span></div><div class="toggle" id="tgl-rgbmatrix" onclick="toggleTgl(this)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title"> info.json — Layout Metadata</span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-2">
+            <div class="field">
+              <label>Keyboard Name</label>
+              <input type="text" id="kbName" placeholder="my_split_kb">
+            </div>
+            <div class="field">
+              <label>Manufacturer</label>
+              <input type="text" id="kbMfr" placeholder="handwired">
+            </div>
+            <div class="field">
+              <label>Maintainer</label>
+              <input type="text" id="kbMaintainer" placeholder="github_username">
+            </div>
+            <div class="field">
+              <label>USB VID (hex)</label>
+              <input type="text" id="usbVid" placeholder="0xFEED" value="0xFEED">
+            </div>
+            <div class="field">
+              <label>USB PID (hex)</label>
+              <input type="text" id="usbPid" placeholder="0x0000" value="0x0000">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <!-- LAYOUT EDITOR -->
+    <div class="panel" id="panel-layout">
+      <div class="panel-header">
+        <div class="panel-title">Layout Editor</div>
+        <div class="panel-subtitle">info.json → layouts.LAYOUT.layout — required for compile</div>
+      </div>
+
+      <div id="layoutConflictBox" style="display:none;background:var(--danger)10;border:1px solid var(--danger)40;border-radius:var(--radius);padding:8px 12px;font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.8;">
+        <strong style="color:var(--danger);">Matrix compile errors</strong> — fix these before building firmware.<br>
+        <span id="layoutConflictDupes" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--accent3);"></span>
+        <span id="layoutConflictOob"   style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--accent3);"></span>
+      </div>
+      <div class="warn-box" id="layoutWarnBox" style="display:none;">
+        No layout defined yet. Use the tools below to generate one from your matrix, or import existing.
+      </div>
+
+      <!-- Toolbar -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+        <button class="btn" id="layoutAddKeyBtn">＋ Add Key</button>
+        <button class="btn btn-danger" id="layoutDeleteSelBtn" style="display:none;">Delete Selected</button>
+        <button class="btn btn-danger" id="layoutClearBtn">Clear All</button>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+          <span style="font-size:11px;color:var(--text3);">Layout Name:</span>
+          <input type="text" id="layoutName" value="LAYOUT" style="width:120px;font-size:12px;">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:var(--text3);">Unit px:</span>
+          <input type="number" id="layoutUnitPx" value="54" min="30" max="100" style="width:60px;font-size:12px;" oninput="renderLayoutCanvas()">
+        </div>
+      </div>
+
+      <!-- Canvas -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;overflow:auto;margin-bottom:14px;">
+        <div id="layoutCanvas" style="position:relative;min-height:120px;"></div>
+      </div>
+
+      <!-- Selected key editor -->
+      <div id="layoutKeyEditor" style="display:none;">
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Selected Key Properties</span>
+            <span class="chevron">v</span>
+          </div>
+          <div class="section-body">
+            <div class="form-grid form-grid-3">
+              <div class="field">
+                <label>Matrix Row</label>
+                <input type="number" id="lkRow" min="0" max="15" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>Matrix Col</label>
+                <input type="number" id="lkCol" min="0" max="15" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>Label <span class="hint">optional</span></label>
+                <input type="text" id="lkLabel" placeholder="e.g. Escape" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>X <span class="hint">key units</span></label>
+                <input type="number" id="lkX" step="0.25" min="0" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>Y <span class="hint">key units</span></label>
+                <input type="number" id="lkY" step="0.25" min="0" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>Width <span class="hint">default 1</span></label>
+                <input type="number" id="lkW" step="0.25" min="0.25" value="1" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>Height <span class="hint">default 1</span></label>
+                <input type="number" id="lkH" step="0.25" min="0.25" value="1" oninput="updateSelectedKey()">
+              </div>
+            </div>
+            <div style="margin-top:10px;">
+              <button class="btn btn-danger btn-sm" onclick="deleteSelectedKey()"> Delete Key</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- JSON preview -->
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">{ } Raw JSON <span class="section-badge file">info.json</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body" style="padding:0;">
+          <div class="code-preview" style="border:none;">
+            <div class="code-preview-header">
+              <span class="code-preview-title">layouts.LAYOUT.layout</span>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-sm" onclick="importLayoutJson()">Import JSON</button>
+                <button class="btn btn-sm" onclick="copyLayoutJson()">Copy</button>
+              </div>
+            </div>
+            <div class="code-body" id="layoutJsonPreview" style="max-height:200px;font-size:10px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-preview">
+      <div class="panel-header">
+        <div class="panel-title">File Preview</div>
+        <div class="panel-subtitle">Generated file contents based on your settings</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn" onclick="showPreview('config')">config.h</button>
+        <button class="btn" onclick="showPreview('rules')">rules.mk</button>
+        <button class="btn" onclick="showPreview('info')">info.json</button>
+        <button class="btn" onclick="showPreview('keymap')">keymap.c</button>
+      </div>
+
+      <div class="code-preview">
+        <div class="code-preview-header">
+          <span class="code-preview-title" id="previewTitle">config.h</span>
+          <button class="btn btn-sm" onclick="copyPreview()">Copy</button>
+        </div>
+        <div class="code-body" id="previewBody"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script src="js/state.js"></script>
+<script src="js/parsers.js"></script>
+<script src="js/generators.js"></script>
+<script src="js/keymap.js"></script>
+<script src="js/pinout.js"></script>
+<script src="js/matrix.js"></script>
+<script src="js/trackball.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/filesystem.js"></script>
+<script src="js/preview.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

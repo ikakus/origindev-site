@@ -1,0 +1,4776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QMK Visual Editor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e29;
+    --surface3: #222736;
+    --border: #2a2f3f;
+    --border2: #363d52;
+    --accent: #5de4c7;
+    --accent2: #7b9ef0;
+    --accent3: #f0a86b;
+    --danger: #f06b6b;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --key-bg: #1e2433;
+    --key-border: #2e3649;
+    --key-hover: #252d3f;
+    --key-active: #5de4c720;
+    --radius: 6px;
+    --radius-lg: 10px;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-ui: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--font-ui);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .logo span { color: var(--accent); }
+
+  .header-actions { display: flex; gap: 10px; align-items: center; }
+
+  .folder-badge {
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px 10px;
+    font-family: var(--font-mono);
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--surface3); border-color: var(--border2); }
+  .btn-accent { background: var(--accent); color: #0d0f14; border-color: var(--accent); font-weight: 600; }
+  .btn-accent:hover { background: #4dd1b5; border-color: #4dd1b5; }
+  .btn-danger { border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: var(--danger)15; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── LAYOUT ── */
+  .app-layout {
+    display: flex;
+    height: calc(100vh - 53px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 200px;
+    min-width: 200px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 8px;
+    gap: 2px;
+    flex: 1;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--text2);
+    transition: all 0.15s;
+    font-size: 12px;
+    border: 1px solid transparent;
+    user-select: none;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: var(--surface2); color: var(--accent); border-color: var(--border); }
+  .nav-icon { width: 16px; text-align: center; font-size: 14px; }
+  .nav-label { font-family: var(--font-ui); font-size: 12px; font-weight: 600; }
+
+  .sidebar-footer {
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── MAIN ── */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+
+  .panel {
+    display: none;
+    padding: 28px;
+    max-width: 1100px;
+  }
+  .panel.active { display: block; }
+
+  .panel-header {
+    margin-bottom: 24px;
+  }
+  .panel-title {
+    font-family: var(--font-ui);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .panel-subtitle { color: var(--text3); font-size: 12px; }
+
+  /* ── SECTIONS ── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .section-header:hover { background: var(--surface2); }
+
+  .section-title {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-badge {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    padding: 2px 7px;
+    border-radius: 99px;
+    background: var(--surface3);
+    color: var(--text3);
+    font-weight: 400;
+  }
+  .section-badge.file { background: var(--accent)20; color: var(--accent); }
+
+  .section-body { padding: 18px; }
+  .section-collapsed .section-body { display: none; }
+  .chevron { transition: transform 0.2s; color: var(--text3); }
+  .section-collapsed .chevron { transform: rotate(-90deg); }
+
+  /* ── FORM GRID ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .form-grid-2 { grid-template-columns: 1fr 1fr; }
+  .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .field-full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 11px;
+    color: var(--text3);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  label .required { color: var(--danger); margin-left: 2px; }
+  label .hint {
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+    margin-left: 4px;
+  }
+
+  input[type="text"], input[type="number"], select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  input::placeholder { color: var(--text3); }
+  select option { background: var(--surface2); }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .toggle-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .toggle-label strong { font-size: 12px; color: var(--text); font-weight: 500; }
+  .toggle-label span { font-size: 11px; color: var(--text3); }
+
+  .toggle {
+    width: 36px;
+    height: 20px;
+    background: var(--surface3);
+    border-radius: 99px;
+    border: 1px solid var(--border2);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: var(--text3);
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: all 0.2s;
+  }
+  .toggle.on { background: var(--accent)30; border-color: var(--accent); }
+  .toggle.on::after { background: var(--accent); left: 18px; }
+
+  .toggles-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* ── PIN MATRIX ── */
+  .pin-matrix-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pin-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pin-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 5px 10px;
+    font-size: 11px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .pin-chip:hover { border-color: var(--border2); color: var(--text); }
+  .pin-chip.selected { background: var(--accent)15; border-color: var(--accent); color: var(--accent); }
+  .pin-chip .pin-num { color: var(--text3); font-size: 10px; }
+  .pin-chip.selected .pin-num { color: var(--accent)80; }
+
+  .pin-section-label {
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  /* ── KEYMAP ── */
+  .layer-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .layer-tab {
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    transition: all 0.15s;
+  }
+  .layer-tab:hover { color: var(--text); border-color: var(--border2); }
+  .layer-tab.active { background: var(--accent)15; border-color: var(--accent); color: var(--accent); }
+  .layer-tab.add-layer { color: var(--text3); border-style: dashed; }
+  .layer-tab.add-layer:hover { color: var(--accent); border-color: var(--accent); }
+  .layer-tab .remove-layer {
+    margin-left: 6px; font-size: 12px; line-height: 1;
+    color: var(--text3); cursor: pointer; opacity: 0.6; transition: opacity 0.15s, color 0.15s;
+  }
+  .layer-tab .remove-layer:hover { opacity: 1; color: var(--danger); }
+
+  .keyboard-canvas {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+
+  .kb-row { display: flex; gap: 4px; margin-bottom: 4px; }
+
+  .key {
+    background: var(--key-bg);
+    border: 1px solid var(--key-border);
+    border-radius: 5px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.12s;
+    position: relative;
+    flex-shrink: 0;
+    font-size: 9px;
+    color: var(--text2);
+    text-align: center;
+    padding: 2px;
+    line-height: 1.2;
+    user-select: none;
+  }
+  .key:hover { background: var(--key-hover); border-color: var(--border2); color: var(--text); }
+  .key.selected { background: var(--accent)20; border-color: var(--accent); color: var(--accent); }
+  .key.wide-1-5 { width: 66px; }
+  .key.wide-1-75 { width: 77px; }
+  .key.wide-2 { width: 92px; }
+  .key.wide-2-25 { width: 103px; }
+  .key.wide-2-75 { width: 125px; }
+  .key.wide-6-25 { width: 281px; }
+  .key.tall-2 { height: 92px; }
+  .key-label { font-size: 9px; word-break: break-all; }
+  .key-fn { font-size: 8px; color: var(--accent); position: absolute; top: 2px; left: 3px; }
+
+  .split-gap { width: 20px; flex-shrink: 0; }
+
+  .trackball-vis {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #3a3f55, #1a1e29);
+    border: 2px solid var(--accent)40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: var(--accent);
+    cursor: default;
+    flex-shrink: 0;
+  }
+
+  /* ── KEY EDITOR PANEL ── */
+  .key-editor {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+  }
+  .key-editor h3 {
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    color: var(--text2);
+  }
+  .keycode-search {
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .keycode-search input {
+    padding-left: 30px;
+  }
+  .keycode-search .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    font-size: 12px;
+  }
+
+  .keycode-categories { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .cat-btn {
+    padding: 3px 9px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text3);
+    font-size: 10px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: all 0.15s;
+  }
+  .cat-btn:hover { color: var(--text); }
+  .cat-btn.active { background: var(--accent2)20; border-color: var(--accent2); color: var(--accent2); }
+
+  .keycode-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .kc-chip {
+    padding: 4px 8px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface3);
+    color: var(--text2);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+  .kc-chip:hover { background: var(--accent)15; border-color: var(--accent); color: var(--accent); }
+
+  /* ── CODE PREVIEW ── */
+  .code-preview {
+    background: #0a0c10;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .code-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .code-preview-title { font-size: 11px; color: var(--text3); }
+  .code-body {
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.8;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--text2);
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .code-body .kw { color: #7b9ef0; }
+  .code-body .val { color: #5de4c7; }
+  .code-body .str { color: #f0a86b; }
+  .code-body .cmt { color: #3d4a63; }
+  .code-body .num { color: #f06b6b; }
+
+  /* ── TOAST ── */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    animation: slideIn 0.2s ease;
+    max-width: 320px;
+  }
+  .toast.success { border-color: var(--accent)60; }
+  .toast.error { border-color: var(--danger)60; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── WELCOME ── */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    padding: 40px;
+    gap: 20px;
+  }
+  .welcome-icon { font-size: 48px; margin-bottom: 8px; }
+  .welcome h2 {
+    font-family: var(--font-ui);
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .welcome p { color: var(--text3); max-width: 400px; line-height: 1.7; }
+  .welcome-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    max-width: 460px;
+    text-align: left;
+    margin-top: 8px;
+  }
+  .feature-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .feature-icon { font-size: 18px; flex-shrink: 0; }
+  .feature-text strong { display: block; font-size: 12px; color: var(--text); margin-bottom: 2px; }
+  .feature-text span { font-size: 11px; color: var(--text3); line-height: 1.5; }
+
+  /* ── RP2040 PINOUT ── */
+  .pin-role-free     { fill: var(--surface3); stroke: var(--border2); }
+  .pin-role-matrix-row { fill: #1a3a2a; stroke: var(--accent); }
+  .pin-role-matrix-col { fill: #1a2a3a; stroke: var(--accent2); }
+  .pin-role-trackball   { fill: #3a2a1a; stroke: var(--accent3); }
+  .pin-role-split       { fill: #2a1a3a; stroke: #c084fc; }
+  .pin-role-rgb         { fill: #3a1a2a; stroke: #f472b6; }
+  .pin-role-encoder     { fill: #1a3a3a; stroke: #34d399; }
+  .pin-role-power       { fill: #1f1f1f; stroke: var(--border2); }
+  .pin-role-conflict    { fill: #3a1a1a; stroke: var(--danger); }
+
+  .pinout-pin { cursor: default; transition: opacity 0.15s; }
+  .pinout-pin:hover { opacity: 0.85; }
+  .pinout-pin.clickable { cursor: pointer; }
+  .pinout-pin.clickable:hover { opacity: 0.75; }
+
+  .legend-dot {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 2px; margin-right: 5px; vertical-align: middle;
+    border: 1px solid;
+  }
+  .legend-item {
+    display: flex; align-items: center;
+    font-size: 10px; color: var(--text2);
+    white-space: nowrap;
+  }
+
+  /* ── MATRIX GRID ── */
+  .mx-table { border-collapse: separate; border-spacing: 5px; }
+
+  .mx-corner {
+    width: 54px; height: 54px;
+    background: var(--surface3);
+    border-radius: var(--radius);
+    font-size: 10px; color: var(--text3);
+    text-align: center; vertical-align: middle;
+    padding: 4px;
+  }
+
+  .mx-col-header {
+    width: 54px; height: 54px;
+    background: var(--accent2)18;
+    border: 1px solid var(--accent2)40;
+    border-radius: var(--radius);
+    text-align: center; vertical-align: middle;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .mx-col-header:hover { background: var(--accent2)30; border-color: var(--accent2); }
+  .mx-col-header .col-num { font-size: 9px; color: var(--text3); display: block; }
+  .mx-col-header .col-pin { font-size: 11px; color: var(--accent2); font-weight: 600; display: block; }
+  .mx-col-header .col-pin.unset { color: var(--text3); font-weight: 400; font-style: italic; }
+
+  .mx-row-header {
+    width: 54px; height: 54px;
+    background: var(--accent)18;
+    border: 1px solid var(--accent)40;
+    border-radius: var(--radius);
+    text-align: center; vertical-align: middle;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .mx-row-header:hover { background: var(--accent)30; border-color: var(--accent); }
+  .mx-row-header.conflict { background: var(--danger)18 !important; border-color: var(--danger) !important; }
+  .mx-row-header.conflict .row-pin { color: var(--danger) !important; }
+  .mx-col-header.conflict { background: var(--danger)18 !important; border-color: var(--danger) !important; }
+  .mx-col-header.conflict .col-pin { color: var(--danger) !important; }
+  .mx-row-header .row-num { font-size: 9px; color: var(--text3); display: block; }
+  .mx-row-header .row-pin { font-size: 11px; color: var(--accent); font-weight: 600; display: block; }
+  .mx-row-header .row-pin.unset { color: var(--text3); font-weight: 400; font-style: italic; }
+
+  .mx-cell {
+    width: 54px; height: 54px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-align: center; vertical-align: middle;
+    font-size: 9px; color: var(--text3);
+    position: relative;
+    transition: background 0.12s;
+  }
+  .mx-cell::after {
+    content: '*';
+    font-size: 14px;
+    color: var(--border2);
+    display: block;
+    line-height: 1;
+  }
+  .mx-cell.row-hi { background: var(--accent)08; }
+  .mx-cell.col-hi { background: var(--accent2)08; }
+  .mx-cell.both-hi { background: var(--surface3); border-color: var(--border2); }
+  .mx-cell.both-hi::after { color: var(--text2); }
+
+  .mx-add-btn {
+    width: 54px; height: 54px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Pin picker chips */
+  .pp-chip {
+    padding: 4px 8px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    font-size: 10px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+  .pp-chip:hover { background: var(--accent)15; border-color: var(--accent); color: var(--accent); }
+  .pp-chip.used { opacity: 0.35; cursor: default; text-decoration: line-through; }
+  .pp-chip.used:hover { background: var(--surface2); border-color: var(--border); color: var(--text2); }
+  .pp-chip.selected { background: var(--accent)25; border-color: var(--accent); color: var(--accent); }
+
+
+  /* ── LAYOUT EDITOR ── */
+  .lk {
+    position: absolute;
+    background: var(--key-bg);
+    border: 1.5px solid var(--key-border);
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    transition: border-color 0.12s, background 0.12s;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .lk:hover { border-color: var(--border2); background: var(--key-hover); }
+  .lk.selected  { border-color: var(--accent); background: var(--accent)18; }
+  /* duplicate matrix pos = yellow/amber */
+  .lk.conflict-dupe  { border-color: var(--accent3) !important; background: var(--accent3)18 !important; animation: lk-pulse-amber 1.2s ease-in-out infinite; }
+  .lk.conflict-dupe .lk-matrix { color: var(--accent3) !important; }
+  .lk.selected.conflict-dupe { border-color: var(--accent3); background: var(--accent3)28; }
+  @keyframes lk-pulse-amber {
+    0%, 100% { box-shadow: 0 0 0 0 var(--accent3)40; }
+    50%       { box-shadow: 0 0 0 4px var(--accent3)00; }
+  }
+  /* out of bounds = red */
+  .lk.conflict-oob  { border-color: var(--danger) !important; background: var(--danger)18 !important; animation: lk-pulse-red 1.2s ease-in-out infinite; }
+  .lk.conflict-oob .lk-matrix { color: var(--danger) !important; }
+  .lk.selected.conflict-oob { border-color: var(--danger); background: var(--danger)28; }
+  @keyframes lk-pulse-red {
+    0%, 100% { box-shadow: 0 0 0 0 var(--danger)40; }
+    50%       { box-shadow: 0 0 0 4px var(--danger)00; }
+  }
+  .lk .lk-matrix { font-size: 8px; color: var(--accent); font-weight: 600; line-height:1; }
+  .lk .lk-label  { font-size: 8px; color: var(--text3); line-height:1.2; }
+  .lk .lk-pos    { font-size: 7px; color: var(--text3); opacity:0.6; line-height:1; }
+  .lk-drag-hint  { position:absolute; bottom:2px; right:3px; font-size:7px; color:var(--text3); opacity:0.4; }
+
+  .layout-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border)55 1px, transparent 1px),
+      linear-gradient(90deg, var(--border)55 1px, transparent 1px);
+    background-size: var(--lk-unit) var(--lk-unit);
+    pointer-events: none;
+    border-radius: var(--radius);
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* ── DIVIDER ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .row { display: flex; gap: 12px; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+  .flex-1 { flex: 1; }
+  .info-box {
+    background: var(--accent2)10;
+    border: 1px solid var(--accent2)30;
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .warn-box {
+    background: var(--accent3)10;
+    border: 1px solid var(--accent3)30;
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .file-status {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 11px;
+  }
+  .file-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text3);
+    flex-shrink: 0;
+  }
+  .file-dot.ok { background: var(--accent); }
+  .file-dot.missing { background: var(--danger); }
+  .file-name { color: var(--text2); font-weight: 500; flex: 1; }
+  .file-path { color: var(--text3); font-size: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">QMK<span>.</span>edit</div>
+  <div class="header-actions">
+    <div class="folder-badge" id="folderBadge">No folder open</div>
+    <button class="btn" id="openFolderBtn">Open QMK Folder</button>
+    <button class="btn btn-accent" id="saveAllBtn" disabled>Save All</button>
+  </div>
+</header>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-panel="home">
+        <span class="nav-icon">~</span>
+        <span class="nav-label">Home</span>
+      </div>
+      <div class="nav-item" data-panel="keymap">
+        <span class="nav-icon">K</span>
+        <span class="nav-label">Keymap</span>
+      </div>
+      <div class="nav-item" data-panel="hardware">
+        <span class="nav-icon">H</span>
+        <span class="nav-label">Hardware</span>
+      </div>
+      <div class="nav-item" data-panel="trackball">
+        <span class="nav-icon">T</span>
+        <span class="nav-label">Trackball</span>
+      </div>
+      <div class="nav-item" data-panel="split">
+        <span class="nav-icon">S</span>
+        <span class="nav-label">Split</span>
+      </div>
+      <div class="nav-item" data-panel="features">
+        <span class="nav-icon">F</span>
+        <span class="nav-label">Features</span>
+      </div>
+      <div class="nav-item" data-panel="layout">
+        <span class="nav-icon">L</span>
+        <span class="nav-label">Layout</span>
+      </div>
+      <div class="nav-item" data-panel="preview">
+        <span class="nav-icon">//</span>
+        <span class="nav-label">Preview</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="font-size:10px;color:var(--text3);line-height:1.6;">
+        Local only. No data leaves your machine.<br>
+        Uses File System Access API.
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" id="mainContent">
+
+    <!-- HOME -->
+    <div class="panel active" id="panel-home">
+      <div id="welcomeScreen" class="welcome">
+        <div class="welcome-icon"></div>
+        <h2>QMK Visual Editor</h2>
+        <p>Open your QMK keyboard folder to visually configure everything — pins, keymap, trackball, split, and features. All edits write directly to your source files.</p>
+        <div class="welcome-features">
+          <div class="feature-item">
+            <span class="feature-icon"></span>
+            <div class="feature-text">
+              <strong>Hardware Pins</strong>
+              <span>Matrix, SPI, I2C, encoders — all visually mapped</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon"></span>
+            <div class="feature-text">
+              <strong>Keymap Editor</strong>
+              <span>Visual layers, tap-dance, mod-tap</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">T</span>
+            <div class="feature-text">
+              <strong>PMW3360</strong>
+              <span>CPI, drag scroll, auto-mouse layer</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">S</span>
+            <div class="feature-text">
+              <strong>Split Config</strong>
+              <span>UART, side detection, transport</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-accent" id="openFolderBtn2" style="margin-top:8px;"> Open QMK Keyboard Folder</button>
+        <p style="font-size:11px;margin-top:4px;">Select the folder containing your keyboard's <code style="color:var(--accent)">config.h</code>, <code style="color:var(--accent)">keymap.c</code>, etc.</p>
+      </div>
+
+      <div id="fileStatusScreen" style="display:none; padding:28px;">
+        <div class="panel-header">
+          <div class="panel-title">Project Files</div>
+          <div class="panel-subtitle">Detected files in your QMK keyboard folder</div>
+        </div>
+        <div class="file-status" id="fileStatusList"></div>
+        <div class="info-box">
+          Missing files will be created with sensible defaults for RP2040 + PMW3360 + split when you save.
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-accent" onclick="loadAllFiles()">Load Files</button>
+          <button class="btn" id="openFolderBtn3">Change Folder</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEYMAP -->
+    <div class="panel" id="panel-keymap">
+      <div class="panel-header">
+        <div class="panel-title">Keymap Editor</div>
+        <div class="panel-subtitle" id="keymapSubtitle">keymap.c — click a key to assign a keycode</div>
+      </div>
+
+      <div class="layer-tabs" id="layerTabs"></div>
+
+      <div class="keyboard-canvas">
+        <div id="keyboardVisual"></div>
+      </div>
+
+      <div class="row" style="gap:16px;align-items:flex-start;">
+        <div class="flex-1">
+          <div class="key-editor">
+            <h3>Key Assignment — <span id="selectedKeyLabel" style="color:var(--accent)">click a key</span></h3>
+            <div class="keycode-search">
+              <span class="search-icon">/</span>
+              <input type="text" id="keycodeSearch" placeholder="Search keycodes...">
+            </div>
+            <div class="keycode-categories" id="keycodeCats"></div>
+            <div class="keycode-grid" id="keycodeGrid"></div>
+          </div>
+        </div>
+        <div style="width:240px;">
+          <div class="section">
+            <div class="section-header">
+              <span class="section-title">Layer Config</span>
+            </div>
+            <div class="section-body">
+              <div class="field">
+                <label>Layer Name</label>
+                <input type="text" id="layerNameInput" placeholder="e.g. BASE, NAV, NUM">
+              </div>
+              <div class="field" style="margin-top:10px;">
+                <label>Rows × Cols</label>
+                <div style="display:flex;gap:8px;">
+                  <input type="number" id="kbRows" value="4" min="1" max="12" style="width:70px;">
+                  <input type="number" id="kbCols" value="6" min="1" max="16" style="width:70px;">
+                  <button class="btn btn-sm" onclick="rebuildKeyboard()">↺ Rebuild</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Matrix Timing <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>DEBOUNCE <span class="hint">ms, default 5</span></label>
+              <input type="number" id="cfgDebounce" value="5" min="0" max="100">
+            </div>
+            <div class="field">
+              <label>MATRIX_IO_DELAY <span class="hint">us, default 30</span></label>
+              <input type="number" id="cfgMatrixIoDelay" value="30" min="0" max="1000">
+            </div>
+            <div class="field">
+              <label>USB_POLLING_INTERVAL_MS <span class="hint">default 1</span></label>
+              <input type="number" id="cfgUsbPolling" value="1" min="1" max="10">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Tap / Hold Behavior <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>TAPPING_TERM <span class="hint">ms, default 200</span></label>
+              <input type="number" id="cfgTappingTerm" value="200" min="50" max="1000">
+            </div>
+            <div class="field">
+              <label>QUICK_TAP_TERM <span class="hint">ms, 0=disabled</span></label>
+              <input type="number" id="cfgQuickTapTerm" value="0" min="0" max="500">
+            </div>
+            <div class="field">
+              <label>ONESHOT_TIMEOUT <span class="hint">ms, default 300</span></label>
+              <input type="number" id="cfgOneshotTimeout" value="300" min="0" max="5000">
+            </div>
+            <div class="field">
+              <label>COMBO_TERM <span class="hint">ms, default TAPPING_TERM</span></label>
+              <input type="number" id="cfgComboTerm" value="50" min="0" max="500">
+            </div>
+            <div class="field">
+              <label>LEADER_TIMEOUT <span class="hint">ms, default 300</span></label>
+              <input type="number" id="cfgLeaderTimeout" value="300" min="0" max="5000">
+            </div>
+          </div>
+          <div class="toggles-grid" style="margin-top:14px;">
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>PERMISSIVE_HOLD</strong><span>Trigger hold if another key pressed before TAPPING_TERM</span></div>
+              <div class="toggle" id="tgl-permissive-hold" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>HOLD_ON_OTHER_KEY_PRESS</strong><span>Select hold immediately when another key pressed</span></div>
+              <div class="toggle" id="tgl-hold-on-other" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>RETRO_TAPPING</strong><span>Tap after TAPPING_TERM if no other key interrupted</span></div>
+              <div class="toggle" id="tgl-retro-tapping" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>LOCKING_SUPPORT_ENABLE</strong><span>Mechanical locking switch support</span></div>
+              <div class="toggle" id="tgl-locking" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>LOCKING_RESYNC_ENABLE</strong><span>Keep LED state in sync with lock switch</span></div>
+              <div class="toggle" id="tgl-locking-resync" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label"><strong>MOUSE_EXTENDED_REPORT</strong><span>Extended mouse reports (-32767 to 32767)</span></div>
+              <div class="toggle" id="tgl-mouse-ext" onclick="toggleTgl(this)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HARDWARE -->
+    <div class="panel" id="panel-hardware">
+      <div class="panel-header">
+        <div class="panel-title">Hardware / Pins</div>
+        <div class="panel-subtitle">config.h — RP2040 pin assignments</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">RP2040 Pin Map <span class="section-badge">live</span></span>
+          <span style="display:flex;align-items:center;gap:10px;">
+            <span class="chevron">v</span>
+          </span>
+        </div>
+        <div class="section-body" style="padding:12px;">
+          <div style="overflow-x:auto;">
+            <svg id="rp2040Svg" viewBox="-10 0 820 660" xmlns="http://www.w3.org/2000/svg"
+                 style="width:100%;max-width:760px;display:block;font-family:JetBrains Mono,monospace;"></svg>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;" id="pinMapLegendFull"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Matrix Pins <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+
+          <!-- Hidden legacy inputs kept for parser/generator compat -->
+          <input type="hidden" id="matrixRowPins">
+          <input type="hidden" id="matrixColPins">
+
+          <div class="info-box" style="margin-bottom:14px;">
+            Click any <strong style="color:var(--accent);">row</strong> or <strong style="color:var(--accent2);">col</strong> header cell to assign a GPIO pin. Use <strong>+/−</strong> to add or remove rows and columns. Each intersection shows which switch connects those two pins.
+          </div>
+
+          <!-- Controls bar -->
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text3);">Rows:</span>
+              <button class="btn btn-sm" id="matrixRemoveRow">−</button>
+              <span id="matrixRowCount" style="font-size:13px;min-width:20px;text-align:center;">4</span>
+              <button class="btn btn-sm" id="matrixAddRow">+</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text3);">Cols:</span>
+              <button class="btn btn-sm" id="matrixRemoveCol">−</button>
+              <span id="matrixColCount" style="font-size:13px;min-width:20px;text-align:center;">6</span>
+              <button class="btn btn-sm" id="matrixAddCol">+</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+              <label style="font-size:11px;text-transform:none;letter-spacing:0;">Diode Dir:</label>
+              <select id="diodeDir" style="width:auto;">
+                <option value="COL2ROW">COL2ROW</option>
+                <option value="ROW2COL">ROW2COL</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Matrix grid -->
+          <div style="overflow-x:auto;">
+            <div id="matrixGrid" style="display:inline-block;min-width:100%;"></div>
+          </div>
+
+          <!-- Right-half col mirroring -->
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Reverse cols for right half</strong>
+                <span>Adds MATRIX_COL_PINS_RIGHT with columns in reverse order — fixes mirrored keys on right half</span>
+              </div>
+              <div class="toggle" id="tgl-right-col-reverse" onclick="toggleTgl(this)"></div>
+            </div>
+          </div>
+          <!-- Hidden inputs for right-half pins (used by generator) -->
+          <input type="hidden" id="matrixRowPinsRight">
+          <input type="hidden" id="matrixColPinsRight">
+          <!-- Matrix pin conflict banner -->
+          <div id="matrixConflictBox" style="display:none;margin-top:10px;background:var(--danger)10;border:1px solid var(--danger)40;border-radius:var(--radius);padding:10px 14px;font-size:11px;color:var(--text2);">
+            <div style="font-weight:600;color:var(--danger);margin-bottom:6px;">Pin conflict — same GPIO used in multiple rows/cols. Will not compile.</div>
+            <div id="matrixConflictList" style="display:flex;flex-direction:column;gap:4px;"></div>
+          </div>
+
+          <!-- Pin picker popup -->
+          <div id="pinPicker" style="display:none;position:fixed;z-index:9000;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:14px;box-shadow:0 8px 32px #00000060;min-width:260px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-family:var(--font-ui);font-weight:700;font-size:13px;" id="pinPickerTitle">Assign Pin</span>
+              <button class="btn btn-sm btn-danger" onclick="clearPickerPin()">Clear</button>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-bottom:8px;">RP2040 GPIO — used pins shown dimmed</div>
+            <div id="pinPickerGrid" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+            <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+              <input type="text" id="pinPickerCustom" placeholder="Custom pin name..." style="flex:1;font-size:11px;">
+              <button class="btn btn-sm" onclick="applyCustomPin()">Set</button>
+            </div>
+            <button class="btn btn-sm" style="margin-top:8px;width:100%;text-align:center;" onclick="closePinPicker()">Done</button>
+          </div>
+          <div id="pinPickerOverlay" style="display:none;position:fixed;inset:0;z-index:8999;" onclick="closePinPicker()"></div>
+
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">USB / Boot <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>Bootloader</label>
+              <select id="bootloader">
+                <option value="rp2040">rp2040 (UF2)</option>
+                <option value="rp2040-e4">rp2040-e4</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Processor</label>
+              <select id="processor">
+                <option value="RP2040">RP2040</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Board</label>
+              <select id="board">
+                <option value="GENERIC_RP_RP2040">Generic RP2040</option>
+                <option value="ADAFRUIT_KB2040">Adafruit KB2040</option>
+                <option value="SPARKFUN_PRO_MICRO_RP2040">SparkFun Pro Micro RP2040</option>
+                <option value="WAVESHARE_RP2040_ZERO">Waveshare Zero</option>
+                <option value="SEEED_XIAO_RP2040">Seeed XIAO RP2040</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">RGB / LEDs <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>RGB Data Pin</label>
+              <input type="text" id="rgbPin" placeholder="GP16">
+            </div>
+            <div class="field">
+              <label>LED Count</label>
+              <input type="number" id="rgbCount" value="0" min="0" max="300">
+            </div>
+            <div class="field">
+              <label>RGB Type</label>
+              <select id="rgbType">
+                <option value="none">None</option>
+                <option value="WS2812">WS2812</option>
+                <option value="SK6812RGBW">SK6812RGBW</option>
+                <option value="APA102">APA102</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Encoders <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-2">
+            <div class="field">
+              <label>Encoder A Pin (Left)</label>
+              <input type="text" id="encAPin" placeholder="GP20">
+            </div>
+            <div class="field">
+              <label>Encoder B Pin (Left)</label>
+              <input type="text" id="encBPin" placeholder="GP21">
+            </div>
+            <div class="field">
+              <label>Encoder A Pin (Right)</label>
+              <input type="text" id="encAPin2" placeholder="GP20">
+            </div>
+            <div class="field">
+              <label>Encoder B Pin (Right)</label>
+              <input type="text" id="encBPin2" placeholder="GP21">
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TRACKBALL -->
+    <div class="panel" id="panel-trackball">
+      <div class="panel-header">
+        <div class="panel-title">PMW3360 Trackball</div>
+        <div class="panel-subtitle">config.h + rules.mk — SPI pointing device configuration</div>
+      </div>
+
+      <div class="warn-box">
+        Note: PMW3360 uses SPI. Make sure your SPI pins don't conflict with split serial. Default SPI0 on RP2040: SCK=GP2, MOSI=GP3, MISO=GP4.
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">SPI / Wiring <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>SPI Bus</label>
+              <select id="spiBus">
+                <option value="SPI_DRIVER">SPI0 — SPID0 (SCK=GP2/6/18/22)</option>
+                <option value="SPI_DRIVER_1">SPI1 — SPID1 (SCK=GP10/14/26)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>SCK Pin</label>
+              <input type="text" id="spiSck" placeholder="GP2" value="GP2">
+            </div>
+            <div class="field">
+              <label>MOSI Pin</label>
+              <input type="text" id="spiMosi" placeholder="GP3" value="GP3">
+            </div>
+            <div class="field">
+              <label>MISO Pin</label>
+              <input type="text" id="spiMiso" placeholder="GP4" value="GP4">
+            </div>
+            <div class="field">
+              <label>CS (Chip Select) Pin</label>
+              <input type="text" id="spiCs" placeholder="GP5" value="GP5">
+            </div>
+            <div class="field">
+              <label>Which Half?</label>
+              <select id="tbSide">
+                <option value="right">Right half</option>
+                <option value="left">Left half</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">PMW3360 Settings <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>CPI (DPI) <span class="hint">100–12000</span></label>
+              <input type="number" id="tbCpi" value="1600" min="100" max="12000" step="100">
+            </div>
+          </div>
+
+          <!-- Visual Orientation Picker -->
+          <div style="margin-top:18px;">
+            <label style="display:block;margin-bottom:10px;">Trackball Orientation <span class="hint">drag the dial or use presets — sets ROTATIONAL_TRANSFORM_ANGLE</span></label>
+            <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+
+              <!-- Compass Dial -->
+              <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <div style="position:relative;width:140px;height:140px;cursor:grab;" id="orientDial">
+                  <svg id="orientSvg" width="140" height="140" viewBox="0 0 140 140">
+                    <!-- Outer ring -->
+                    <circle cx="70" cy="70" r="66" fill="none" stroke="var(--border2)" stroke-width="1.5"/>
+                    <circle cx="70" cy="70" r="58" fill="var(--surface3)" stroke="var(--border)" stroke-width="1"/>
+                    <!-- Tick marks -->
+                    <g id="ticks"></g>
+                    <!-- Ball body -->
+                    <circle cx="70" cy="70" r="28" fill="url(#ballGrad)" stroke="var(--accent)" stroke-width="1.5" stroke-opacity="0.5"/>
+                    <defs>
+                      <radialGradient id="ballGrad" cx="38%" cy="35%">
+                        <stop offset="0%" stop-color="#3a4060"/>
+                        <stop offset="100%" stop-color="#1a1e29"/>
+                      </radialGradient>
+                    </defs>
+                    <!-- Direction arrow -->
+                    <g id="orientArrow" transform="rotate(0,70,70)">
+                      <line x1="70" y1="70" x2="70" y2="20" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+                      <polygon points="70,12 66,22 74,22" fill="var(--accent)"/>
+                      <!-- Arrow label -->
+                      <text x="70" y="9" text-anchor="middle" font-size="7" fill="var(--accent)" font-family="JetBrains Mono,monospace">↑</text>
+                    </g>
+                    <!-- Crosshair labels -->
+                    <text x="70" y="8" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="JetBrains Mono,monospace">0°</text>
+                    <text x="134" y="73" text-anchor="end" font-size="8" fill="var(--text3)" font-family="JetBrains Mono,monospace">90°</text>
+                    <text x="70" y="137" text-anchor="middle" font-size="8" fill="var(--text3)" font-family="JetBrains Mono,monospace">180°</text>
+                    <text x="6" y="73" text-anchor="start" font-size="8" fill="var(--text3)" font-family="JetBrains Mono,monospace">270°</text>
+                  </svg>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <input type="number" id="tbRotation" value="0" min="0" max="359" step="1"
+                    style="width:70px;text-align:center;"
+                    oninput="setOrientAngle(parseInt(this.value)||0)">
+                  <span style="color:var(--text3);font-size:11px;">degrees</span>
+                </div>
+              </div>
+
+              <!-- Presets + Invert -->
+              <div style="display:flex;flex-direction:column;gap:12px;flex:1;min-width:180px;">
+                <div>
+                  <label style="display:block;margin-bottom:6px;">Quick Presets</label>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+                    <button class="btn btn-sm orient-preset" data-angle="0">↑ 0° (default)</button>
+                    <button class="btn btn-sm orient-preset" data-angle="90">→ 90°</button>
+                    <button class="btn btn-sm orient-preset" data-angle="180">↓ 180°</button>
+                    <button class="btn btn-sm orient-preset" data-angle="270">← 270°</button>
+                    <button class="btn btn-sm orient-preset" data-angle="45">↗ 45°</button>
+                    <button class="btn btn-sm orient-preset" data-angle="315">↖ 315°</button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style="display:block;margin-bottom:6px;">Axis Adjustments</label>
+                  <div style="display:flex;flex-direction:column;gap:6px;">
+                    <div class="toggle-row">
+                      <div class="toggle-label">
+                        <strong>Invert X</strong>
+                        <span>Flip left/right movement</span>
+                      </div>
+                      <div class="toggle" id="tgl-invertx" onclick="toggleTgl(this)"></div>
+                    </div>
+                    <div class="toggle-row">
+                      <div class="toggle-label">
+                        <strong>Invert Y</strong>
+                        <span>Flip up/down movement</span>
+                      </div>
+                      <div class="toggle" id="tgl-inverty" onclick="toggleTgl(this)"></div>
+                    </div>
+                    <div class="toggle-row">
+                      <div class="toggle-label">
+                        <strong>Swap X/Y</strong>
+                        <span>Rotate axes 90° (no angle needed)</span>
+                      </div>
+                      <div class="toggle" id="tgl-swapxy" onclick="toggleTgl(this)"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="info-box" style="margin:0;font-size:10px;">
+                  <strong style="color:var(--accent);">Tip:</strong> If your ball moves diagonally when you push straight, adjust the angle. If it moves in the wrong axis entirely, use Swap X/Y. If direction is reversed, use Invert.
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="toggles-grid" style="margin-top:14px;">
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Drag Scroll</strong>
+                <span>Ball scrolls instead of moves cursor</span>
+              </div>
+              <div class="toggle" id="tgl-dragscroll" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Auto Mouse Layer</strong>
+                <span>Activates layer on trackball move</span>
+              </div>
+              <div class="toggle" id="tgl-automouse" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Scroll Acceleration</strong>
+                <span>Faster ball = faster scroll</span>
+              </div>
+              <div class="toggle" id="tgl-scrollaccel" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>Combined Pointing</strong>
+                <span>Trackball on slave half</span>
+              </div>
+              <div class="toggle" id="tgl-combined" onclick="toggleTgl(this)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="autoMouseSection">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Auto Mouse Layer Settings <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-3">
+            <div class="field">
+              <label>Auto Mouse Layer</label>
+              <input type="number" id="autoMouseLayer" value="1" min="0" max="15">
+            </div>
+            <div class="field">
+              <label>Timeout (ms)</label>
+              <input type="number" id="autoMouseTimeout" value="650" min="100" max="5000">
+            </div>
+            <div class="field">
+              <label>Debounce (ms)</label>
+              <input type="number" id="autoMouseDebounce" value="25" min="0" max="200">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">rules.mk Entries <span class="section-badge file">rules.mk</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="toggles-grid">
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>POINTING_DEVICE_ENABLE</strong>
+                <span>Required for any pointing device</span>
+              </div>
+              <div class="toggle on" id="tgl-pde" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPI_DRIVER_REQUIRED</strong>
+                <span>Needed for PMW3360</span>
+              </div>
+              <div class="toggle on" id="tgl-spi" onclick="toggleTgl(this)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPLIT -->
+    <div class="panel" id="panel-split">
+      <div class="panel-header">
+        <div class="panel-title">Split Configuration</div>
+        <div class="panel-subtitle">config.h + rules.mk — handwired split keyboard settings</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Transport / Serial <span class="section-badge file">rules.mk + config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-2">
+            <div class="field">
+              <label>Serial Driver</label>
+              <select id="serialDriver" onchange="updateSerialDriverUI()">
+                <option value="vendor">vendor — Native USB (recommended, no wires)</option>
+                <option value="serial">serial — PIO half-duplex (single wire, RP2040)</option>
+                <option value="bitbang">bitbang — Software serial (any pin, slower)</option>
+              </select>
+            </div>
+            <div class="field" id="serialPinField" style="display:none;">
+              <label>Serial Pin <span class="hint" id="serialPinHint">SOFT_SERIAL_PIN</span></label>
+              <input type="text" id="serialPin" placeholder="GP1" value="GP1">
+            </div>
+            <div class="field" id="serialSpeedField" style="display:none;">
+              <label>Bitbang Speed <span class="hint">SELECT_SOFT_SERIAL_SPEED</span></label>
+              <select id="serialSpeed">
+                <option value="1">1 — 460800 baud</option>
+                <option value="2">2 — 230400 baud</option>
+                <option value="3">3 — 115200 baud</option>
+                <option value="4">4 — 57600 baud</option>
+                <option value="5">5 — 38400 baud</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Side Detection <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-2">
+            <div class="field">
+              <label>Detection Method</label>
+              <select id="sideDetect">
+                <option value="pin">SPLIT_HAND_PIN — dedicated GPIO</option>
+                <option value="eeprom">EE_HANDS — set via QMK flashing</option>
+                <option value="matrix">SPLIT_HAND_MATRIX_GRID</option>
+              </select>
+            </div>
+            <div class="field" id="sideDetectPinField">
+              <label>Hand Pin</label>
+              <input type="text" id="handPin" placeholder="GP25" value="GP25">
+            </div>
+          </div>
+          <div class="info-box" style="margin-top:12px;margin-bottom:0;">
+            SPLIT_HAND_PIN: tie the pin HIGH on one half (right), LOW on the other (left) via pull resistor or VCC/GND wiring.
+          </div>
+          <div style="margin-top:14px;">
+            <div class="form-grid form-grid-2">
+              <div class="field">
+                <label>Master Side <span class="hint">which half is plugged into USB</span></label>
+                <select id="masterSide">
+                  <option value="none">Auto-detect (SPLIT_USB_DETECT)</option>
+                  <option value="left">MASTER_LEFT — left half is master</option>
+                  <option value="right">MASTER_RIGHT — right half is master</option>
+                </select>
+              </div>
+            </div>
+            <div class="info-box" style="margin-top:8px;margin-bottom:0;">
+              MASTER_LEFT / MASTER_RIGHT: hardcodes which half is the USB master. Use when auto-detect is unreliable. Mutually exclusive with SPLIT_USB_DETECT.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Split Features <span class="section-badge file">config.h</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="toggles-grid">
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_USB_DETECT</strong>
+                <span>Auto-detect USB master (ignored if MASTER_LEFT/RIGHT set)</span>
+              </div>
+              <div class="toggle on" id="tgl-usb-detect" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_LAYER_STATE_ENABLE</strong>
+                <span>Sync layer state across halves</span>
+              </div>
+              <div class="toggle on" id="tgl-layer-sync" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_LED_STATE_ENABLE</strong>
+                <span>Sync LED/RGB state</span>
+              </div>
+              <div class="toggle" id="tgl-led-sync" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_MODS_ENABLE</strong>
+                <span>Sync modifier state</span>
+              </div>
+              <div class="toggle on" id="tgl-mods-sync" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_TRANSPORT_MIRROR</strong>
+                <span>Mirror matrix on master side</span>
+              </div>
+              <div class="toggle on" id="tgl-mirror" onclick="toggleTgl(this)"></div>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <strong>SPLIT_WATCHDOG_ENABLE</strong>
+                <span>Watchdog for split comms</span>
+              </div>
+              <div class="toggle" id="tgl-watchdog" onclick="toggleTgl(this)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="panel" id="panel-features">
+      <div class="panel-header">
+        <div class="panel-title">Features</div>
+        <div class="panel-subtitle">rules.mk — enable/disable QMK feature modules</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title"> Core Features <span class="section-badge file">rules.mk</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="toggles-grid">
+            <div class="toggle-row"><div class="toggle-label"><strong>NKRO_ENABLE</strong><span>N-key rollover</span></div><div class="toggle on" id="tgl-nkro" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>BOOTMAGIC_ENABLE</strong><span>Hold key on boot to enter bootloader</span></div><div class="toggle on" id="tgl-bootmagic" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>MOUSEKEY_ENABLE</strong><span>Mouse keys in keymap</span></div><div class="toggle" id="tgl-mousekey" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>EXTRAKEY_ENABLE</strong><span>Audio/system controls</span></div><div class="toggle on" id="tgl-extrakey" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>CONSOLE_ENABLE</strong><span>Debug console (hid_listen)</span></div><div class="toggle" id="tgl-console" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>COMMAND_ENABLE</strong><span>Magic commands</span></div><div class="toggle" id="tgl-command" onclick="toggleTgl(this)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">Advanced Features <span class="section-badge file">rules.mk</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="toggles-grid">
+            <div class="toggle-row"><div class="toggle-label"><strong>TAP_DANCE_ENABLE</strong><span>Multi-tap key actions</span></div><div class="toggle" id="tgl-tapdance" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>COMBO_ENABLE</strong><span>Chord multiple keys</span></div><div class="toggle" id="tgl-combo" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>KEY_OVERRIDE_ENABLE</strong><span>Override key+modifier combos</span></div><div class="toggle" id="tgl-keyoverride" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>ENCODER_ENABLE</strong><span>Rotary encoder support</span></div><div class="toggle" id="tgl-encoder" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>OLED_ENABLE</strong><span>OLED display support</span></div><div class="toggle" id="tgl-oled" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>WPM_ENABLE</strong><span>Words-per-minute tracking</span></div><div class="toggle" id="tgl-wpm" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>AUTOCORRECT_ENABLE</strong><span>Auto-correct words while typing</span></div><div class="toggle" id="tgl-autocorrect" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>CAPS_WORD_ENABLE</strong><span>One-shot caps lock for a word</span></div><div class="toggle" id="tgl-capsword" onclick="toggleTgl(this)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">RGB Features <span class="section-badge file">rules.mk</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="toggles-grid">
+            <div class="toggle-row"><div class="toggle-label"><strong>RGBLIGHT_ENABLE</strong><span>Per-key underglow / RGB strips</span></div><div class="toggle" id="tgl-rgblight" onclick="toggleTgl(this)"></div></div>
+            <div class="toggle-row"><div class="toggle-label"><strong>RGB_MATRIX_ENABLE</strong><span>Full RGB matrix (per-key)</span></div><div class="toggle" id="tgl-rgbmatrix" onclick="toggleTgl(this)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title"> info.json — Layout Metadata</span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body">
+          <div class="form-grid form-grid-2">
+            <div class="field">
+              <label>Keyboard Name</label>
+              <input type="text" id="kbName" placeholder="my_split_kb">
+            </div>
+            <div class="field">
+              <label>Manufacturer</label>
+              <input type="text" id="kbMfr" placeholder="handwired">
+            </div>
+            <div class="field">
+              <label>Maintainer</label>
+              <input type="text" id="kbMaintainer" placeholder="github_username">
+            </div>
+            <div class="field">
+              <label>USB VID (hex)</label>
+              <input type="text" id="usbVid" placeholder="0xFEED" value="0xFEED">
+            </div>
+            <div class="field">
+              <label>USB PID (hex)</label>
+              <input type="text" id="usbPid" placeholder="0x0000" value="0x0000">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREVIEW -->
+    <!-- LAYOUT EDITOR -->
+    <div class="panel" id="panel-layout">
+      <div class="panel-header">
+        <div class="panel-title">Layout Editor</div>
+        <div class="panel-subtitle">info.json → layouts.LAYOUT.layout — required for compile</div>
+      </div>
+
+      <div id="layoutConflictBox" style="display:none;background:var(--danger)10;border:1px solid var(--danger)40;border-radius:var(--radius);padding:8px 12px;font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.8;">
+        <strong style="color:var(--danger);">Matrix compile errors</strong> — fix these before building firmware.<br>
+        <span id="layoutConflictDupes" style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--accent3);"></span>
+        <span id="layoutConflictOob"   style="display:none;font-family:var(--font-mono);font-size:10px;color:var(--accent3);"></span>
+      </div>
+      <div class="warn-box" id="layoutWarnBox" style="display:none;">
+        No layout defined yet. Use the tools below to generate one from your matrix, or import existing.
+      </div>
+
+      <!-- Toolbar -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+        <button class="btn" id="layoutAddKeyBtn">＋ Add Key</button>
+        <button class="btn btn-danger" id="layoutDeleteSelBtn" style="display:none;">Delete Selected</button>
+        <button class="btn btn-danger" id="layoutClearBtn">Clear All</button>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+          <span style="font-size:11px;color:var(--text3);">Layout Name:</span>
+          <input type="text" id="layoutName" value="LAYOUT" style="width:120px;font-size:12px;">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:var(--text3);">Unit px:</span>
+          <input type="number" id="layoutUnitPx" value="54" min="30" max="100" style="width:60px;font-size:12px;" oninput="renderLayoutCanvas()">
+        </div>
+      </div>
+
+      <!-- Canvas -->
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;overflow:auto;margin-bottom:14px;">
+        <div id="layoutCanvas" style="position:relative;min-height:120px;"></div>
+      </div>
+
+      <!-- Selected key editor -->
+      <div id="layoutKeyEditor" style="display:none;">
+        <div class="section">
+          <div class="section-header" onclick="toggleSection(this)">
+            <span class="section-title">Selected Key Properties</span>
+            <span class="chevron">v</span>
+          </div>
+          <div class="section-body">
+            <div class="form-grid form-grid-3">
+              <div class="field">
+                <label>Matrix Row</label>
+                <input type="number" id="lkRow" min="0" max="15" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>Matrix Col</label>
+                <input type="number" id="lkCol" min="0" max="15" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>Label <span class="hint">optional</span></label>
+                <input type="text" id="lkLabel" placeholder="e.g. Escape" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>X <span class="hint">key units</span></label>
+                <input type="number" id="lkX" step="0.25" min="0" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>Y <span class="hint">key units</span></label>
+                <input type="number" id="lkY" step="0.25" min="0" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>Width <span class="hint">default 1</span></label>
+                <input type="number" id="lkW" step="0.25" min="0.25" value="1" oninput="updateSelectedKey()">
+              </div>
+              <div class="field">
+                <label>Height <span class="hint">default 1</span></label>
+                <input type="number" id="lkH" step="0.25" min="0.25" value="1" oninput="updateSelectedKey()">
+              </div>
+            </div>
+            <div style="margin-top:10px;">
+              <button class="btn btn-danger btn-sm" onclick="deleteSelectedKey()"> Delete Key</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- JSON preview -->
+      <div class="section">
+        <div class="section-header" onclick="toggleSection(this)">
+          <span class="section-title">{ } Raw JSON <span class="section-badge file">info.json</span></span>
+          <span class="chevron">v</span>
+        </div>
+        <div class="section-body" style="padding:0;">
+          <div class="code-preview" style="border:none;">
+            <div class="code-preview-header">
+              <span class="code-preview-title">layouts.LAYOUT.layout</span>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-sm" onclick="importLayoutJson()">Import JSON</button>
+                <button class="btn btn-sm" onclick="copyLayoutJson()">Copy</button>
+              </div>
+            </div>
+            <div class="code-body" id="layoutJsonPreview" style="max-height:200px;font-size:10px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-preview">
+      <div class="panel-header">
+        <div class="panel-title">File Preview</div>
+        <div class="panel-subtitle">Generated file contents based on your settings</div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn" onclick="showPreview('config')">config.h</button>
+        <button class="btn" onclick="showPreview('rules')">rules.mk</button>
+        <button class="btn" onclick="showPreview('info')">info.json</button>
+        <button class="btn" onclick="showPreview('keymap')">keymap.c</button>
+      </div>
+
+      <div class="code-preview">
+        <div class="code-preview-header">
+          <span class="code-preview-title" id="previewTitle">config.h</span>
+          <button class="btn btn-sm" onclick="copyPreview()">Copy</button>
+        </div>
+        <div class="code-body" id="previewBody"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let dirHandle = null;
+let fileHandles = {};
+let _rawInfoJson = {};  // Preserves keys we don't edit (layouts, community_layouts, etc.)
+let currentPanel = 'home';
+let selectedKey = null;
+let currentLayer = 0;
+let currentPreview = 'config';
+
+let LAYER_NAMES = ['LAYER_0', 'LAYER_1', 'LAYER_2'];
+let keymapData = []; // [layer][row][col] = keycode string
+
+// ═══════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const panel = item.dataset.panel;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + panel).classList.add('active');
+    currentPanel = panel;
+    if (panel === 'preview') showPreview(currentPreview);
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// FILE SYSTEM
+// ═══════════════════════════════════════════════════
+async function openFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    toast('File System Access API not supported. Use Chrome or Edge.', 'error');
+    return;
+  }
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    document.getElementById('folderBadge').textContent = dirHandle.name;
+    await scanFolder();
+  } catch(e) {
+    if (e.name !== 'AbortError') toast('Could not open folder: ' + e.message, 'error');
+  }
+}
+
+['openFolderBtn', 'openFolderBtn2', 'openFolderBtn3'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('click', openFolder);
+});
+
+// Root-level config files
+const ROOT_FILES = [
+  { name: 'config.h',  desc: 'Hardware & feature defines' },
+  { name: 'rules.mk',  desc: 'Build rules & feature flags' },
+  { name: 'info.json', desc: 'Layout & keyboard metadata'  },
+];
+
+// Resolved keymap handle + path info
+let keymapHandle = null;      // FileSystemFileHandle for keymap.c
+let keymapDirHandle = null;   // FileSystemDirectoryHandle for the folder containing keymap.c
+let keymapPath = '';          // Display path e.g. "keymaps/default/keymap.c"
+
+async function scanFolder() {
+  fileHandles = {};
+  keymapHandle = null;
+  keymapDirHandle = null;
+  keymapPath = '';
+
+  const statusList = document.getElementById('fileStatusList');
+  statusList.innerHTML = '';
+
+  // ── Scan root files ──
+  for (const f of ROOT_FILES) {
+    let found = false;
+    try {
+      fileHandles[f.name] = await dirHandle.getFileHandle(f.name, { create: false });
+      found = true;
+    } catch(e) { /* not found */ }
+
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.innerHTML = `
+      <div class="file-dot ${found ? 'ok' : 'missing'}"></div>
+      <div class="file-name">${f.name}</div>
+      <div class="file-path">${found ? 'found' : 'will be created'} — ${f.desc}</div>
+    `;
+    statusList.appendChild(item);
+  }
+
+  // ── Find keymap.c ──
+  // Search order:
+  //   1. keymaps/<any_folder>/keymap.c  (list all, prefer "default")
+  //   2. keymap.c at root (fallback)
+  const keymapResult = await findKeymapFile();
+  const keymapItem = document.createElement('div');
+  keymapItem.className = 'file-item';
+  if (keymapResult.found) {
+    keymapItem.innerHTML = `
+      <div class="file-dot ok"></div>
+      <div class="file-name">keymap.c</div>
+      <div class="file-path">found — ${keymapResult.path}</div>
+    `;
+    if (keymapResult.availableKeymaps && keymapResult.availableKeymaps.length > 1) {
+      // Show a selector for multiple keymaps
+      const sel = document.createElement('select');
+      sel.style.cssText = 'margin-left:auto;font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text2);padding:2px 6px;';
+      keymapResult.availableKeymaps.forEach(km => {
+        const opt = document.createElement('option');
+        opt.value = km.name;
+        opt.textContent = km.name;
+        if (km.name === keymapResult.selectedName) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', async () => {
+        const chosen = keymapResult.availableKeymaps.find(k => k.name === sel.value);
+        if (chosen) {
+          keymapHandle = chosen.handle;
+          keymapDirHandle = chosen.dirHandle;
+          keymapPath = `keymaps/${chosen.name}/keymap.c`;
+        }
+      });
+      keymapItem.appendChild(sel);
+    }
+  } else {
+    keymapItem.innerHTML = `
+      <div class="file-dot missing"></div>
+      <div class="file-name">keymap.c</div>
+      <div class="file-path">not found — will create keymaps/default/keymap.c</div>
+    `;
+  }
+  statusList.appendChild(keymapItem);
+
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('fileStatusScreen').style.display = 'block';
+  document.getElementById('saveAllBtn').disabled = false;
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector('[data-panel="home"]').classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-home').classList.add('active');
+}
+
+async function findKeymapFile() {
+  const result = { found: false, path: '', selectedName: '', availableKeymaps: [] };
+
+  // Try keymaps/ subdirectory first
+  try {
+    const keymapsDirHandle = await dirHandle.getDirectoryHandle('keymaps', { create: false });
+
+    // List all subdirs inside keymaps/
+    for await (const [name, handle] of keymapsDirHandle) {
+      if (handle.kind === 'directory') {
+        try {
+          const kmHandle = await handle.getFileHandle('keymap.c', { create: false });
+          result.availableKeymaps.push({ name, handle: kmHandle, dirHandle: handle });
+        } catch(e) { /* no keymap.c in this subdir */ }
+      }
+    }
+
+    if (result.availableKeymaps.length > 0) {
+      // Prefer "default", else first found
+      const preferred = result.availableKeymaps.find(k => k.name === 'default') || result.availableKeymaps[0];
+      keymapHandle    = preferred.handle;
+      keymapDirHandle = preferred.dirHandle;
+      keymapPath      = `keymaps/${preferred.name}/keymap.c`;
+      result.found        = true;
+      result.path         = keymapPath;
+      result.selectedName = preferred.name;
+      return result;
+    }
+  } catch(e) { /* no keymaps/ dir */ }
+
+  // Fallback: keymap.c at root
+  try {
+    keymapHandle    = await dirHandle.getFileHandle('keymap.c', { create: false });
+    keymapDirHandle = dirHandle;
+    keymapPath      = 'keymap.c';
+    result.found    = true;
+    result.path     = 'keymap.c (root)';
+    return result;
+  } catch(e) { /* not found anywhere */ }
+
+  return result;
+}
+
+async function loadAllFiles() {
+  // Load root files
+  for (const f of ROOT_FILES) {
+    try {
+      if (fileHandles[f.name]) {
+        const file = await fileHandles[f.name].getFile();
+        const text = await file.text();
+        if (f.name === 'config.h')  parseConfigH(text);
+        if (f.name === 'rules.mk')  parseRulesMk(text);
+      }
+    } catch(e) { console.warn('Error loading', f.name, e); }
+  }
+
+  // Store raw keymap text for re-parsing after layoutKeys is populated
+  let _rawKeymapText = '';
+  if (keymapHandle) {
+    try {
+      const file = await keymapHandle.getFile();
+      _rawKeymapText = await file.text();
+      // First pass — sets layoutName, keymapData stored positionally as fallback
+      parseKeymapC(_rawKeymapText);
+    } catch(e) { console.warn('Error loading keymap.c', e); }
+  }
+
+  // info.json last — wins over config.h for matrix_pins
+  try {
+    if (fileHandles['info.json']) {
+      const file = await fileHandles['info.json'].getFile();
+      parseInfoJson(await file.text());
+    }
+  } catch(e) { console.warn('Error loading info.json', e); }
+
+  // Load layoutKeys from info.json, then re-parse keymap using correct matrix coords
+  getLayoutFromRaw();
+  if (_rawKeymapText && layoutKeys.length > 0) {
+    parseKeymapC(_rawKeymapText);  // second pass — now layoutKeys is populated
+  }
+
+  toast(`Files loaded${keymapPath ? ' — keymap: ' + keymapPath : ''}`, 'success');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector('[data-panel="keymap"]').classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-keymap').classList.add('active');
+  initKeymap();
+  renderLayoutCanvas();
+  updateLayoutJsonPreview();
+}
+
+// ═══════════════════════════════════════════════════
+// PARSERS (best-effort, regex-based)
+// ═══════════════════════════════════════════════════
+function getDefine(text, name) {
+  const m = text.match(new RegExp(`#define\\s+${name}\\s+([^\\n]+)`));
+  if (!m) return null;
+  return m[1].replace(/\/\/.*$/, '').trim();
+}
+
+function parseConfigH(text) {
+  const g = (n, fb='') => getDefine(text, n) || fb;
+  // matrix
+  const rowStr = g('MATRIX_ROW_PINS');
+  if (rowStr) document.getElementById('matrixRowPins').value = rowStr.replace(/[{},]/g,' ').replace(/\s+/g,' ').trim();
+  const colStr = g('MATRIX_COL_PINS');
+  if (colStr) document.getElementById('matrixColPins').value = colStr.replace(/[{},]/g,' ').replace(/\s+/g,' ').trim();
+  const dd = g('DIODE_DIRECTION');
+  if (dd) document.getElementById('diodeDir').value = dd;
+
+  // right-half matrix overrides
+  const rowStrR = g('MATRIX_ROW_PINS_RIGHT');
+  if (rowStrR) document.getElementById('matrixRowPinsRight').value = rowStrR.replace(/[{},]/g,' ').replace(/\s+/g,' ').trim();
+  const colStrR = g('MATRIX_COL_PINS_RIGHT');
+  if (colStrR) {
+    document.getElementById('matrixColPinsRight').value = colStrR.replace(/[{},]/g,' ').replace(/\s+/g,' ').trim();
+    // Check if right cols are the reverse of left cols → set toggle
+    const leftCols  = (g('MATRIX_COL_PINS') || '').replace(/[{},]/g,' ').trim().split(/\s+/).filter(Boolean);
+    const rightCols = colStrR.replace(/[{},]/g,' ').trim().split(/\s+/).filter(Boolean);
+    const isReversed = leftCols.length === rightCols.length &&
+      leftCols.every((p, i) => p.toUpperCase() === rightCols[rightCols.length - 1 - i].toUpperCase());
+    if (isReversed) setTgl('tgl-right-col-reverse', true);
+  }
+
+  // split
+  const sp = g('SOFT_SERIAL_PIN');
+  if (sp) {
+    document.getElementById('serialPin').value = sp;
+    // serial (PIO) vs bitbang is set by SERIAL_DRIVER in rules.mk; keep whatever was parsed
+  }
+  const hp = g('SPLIT_HAND_PIN');
+  if (hp) { document.getElementById('handPin').value = hp; document.getElementById('sideDetect').value = 'pin'; }
+
+  // trackball
+  const spiDrv = g('SPI_DRIVER');
+  if (spiDrv) {
+    const el = document.getElementById('spiBus');
+    if (el) el.value = spiDrv === 'SPID1' ? 'SPI_DRIVER_1' : 'SPI_DRIVER';
+  }
+  const sck = g('SPI_SCK_PIN'); if (sck) document.getElementById('spiSck').value = sck;
+  const mosi = g('SPI_MOSI_PIN'); if (mosi) document.getElementById('spiMosi').value = mosi;
+  const miso = g('SPI_MISO_PIN'); if (miso) document.getElementById('spiMiso').value = miso;
+  const cs = g('PMW33XX_CS_PIN'); if (cs) document.getElementById('spiCs').value = cs;
+  const cpi = g('PMW33XX_CPI'); if (cpi) document.getElementById('tbCpi').value = cpi;
+
+  // ── Trackball orientation ──
+  const rot = g('ROTATIONAL_TRANSFORM_ANGLE');
+  if (rot) setOrientAngle(parseInt(rot) || 0);
+  // INVERT defines are presence-based (#define with no value)
+  const hasInvertX = text.includes('POINTING_DEVICE_INVERT_X');
+  const hasInvertY = text.includes('POINTING_DEVICE_INVERT_Y');
+  setTgl('tgl-invertx', hasInvertX);
+  setTgl('tgl-inverty', hasInvertY);
+  // SwapXY = both inverts present (that's how we encode it on save)
+  setTgl('tgl-swapxy', hasInvertX && hasInvertY);
+
+  // toggles from defines
+  if (text.includes('POINTING_DEVICE_AUTO_MOUSE_ENABLE')) setTgl('tgl-automouse', true);
+  if (text.includes('SPLIT_POINTING_ENABLE')) setTgl('tgl-combined', true);
+  if (text.includes('SPLIT_USB_DETECT')) setTgl('tgl-usb-detect', true);
+  if (text.includes('SPLIT_LAYER_STATE_ENABLE')) setTgl('tgl-layer-sync', true);
+  if (text.includes('SPLIT_MODS_ENABLE')) setTgl('tgl-mods-sync', true);
+  if (text.includes('SPLIT_TRANSPORT_MIRROR')) setTgl('tgl-mirror', true);
+
+  if (text.includes('MASTER_LEFT'))  { const el = document.getElementById('masterSide'); if(el) el.value = 'left'; }
+  if (text.includes('MASTER_RIGHT')) { const el = document.getElementById('masterSide'); if(el) el.value = 'right'; }
+
+  const aml = g('AUTO_MOUSE_DEFAULT_LAYER');
+  if (aml) document.getElementById('autoMouseLayer').value = aml;
+  const amt = g('AUTO_MOUSE_TIME');
+  if (amt) document.getElementById('autoMouseTimeout').value = amt;
+
+  // ── Matrix timing ──
+  const deb = g('DEBOUNCE');           if (deb)  document.getElementById('cfgDebounce').value = deb;
+  const iod = g('MATRIX_IO_DELAY');   if (iod)  document.getElementById('cfgMatrixIoDelay').value = iod;
+  const usp = g('USB_POLLING_INTERVAL_MS'); if (usp) document.getElementById('cfgUsbPolling').value = usp;
+
+  // ── Tap/hold behavior ──
+  const tt  = g('TAPPING_TERM');      if (tt)   document.getElementById('cfgTappingTerm').value = tt;
+  const qtt = g('QUICK_TAP_TERM');    if (qtt)  document.getElementById('cfgQuickTapTerm').value = qtt;
+  const ost = g('ONESHOT_TIMEOUT');   if (ost)  document.getElementById('cfgOneshotTimeout').value = ost;
+  const ct  = g('COMBO_TERM');        if (ct)   document.getElementById('cfgComboTerm').value = ct;
+  const lt  = g('LEADER_TIMEOUT');    if (lt)   document.getElementById('cfgLeaderTimeout').value = lt;
+
+  if (text.includes('PERMISSIVE_HOLD'))        setTgl('tgl-permissive-hold', true);
+  if (text.includes('HOLD_ON_OTHER_KEY_PRESS')) setTgl('tgl-hold-on-other', true);
+  if (text.includes('RETRO_TAPPING'))          setTgl('tgl-retro-tapping', true);
+  if (text.includes('LOCKING_SUPPORT_ENABLE')) setTgl('tgl-locking', true);
+  if (text.includes('LOCKING_RESYNC_ENABLE'))  setTgl('tgl-locking-resync', true);
+  if (text.includes('MOUSE_EXTENDED_REPORT'))  setTgl('tgl-mouse-ext', true);
+
+  // ── Sync matrix pins into matrixState ──
+  const rp = document.getElementById('matrixRowPins').value.trim().split(/[\s,]+/).map(p => p.trim()).filter(Boolean);
+  const cp = document.getElementById('matrixColPins').value.trim().split(/[\s,]+/).map(p => p.trim()).filter(Boolean);
+  if (rp.length) { matrixState.rows = rp.length; matrixState.rowPins = rp; }
+  if (cp.length) { matrixState.cols = cp.length; matrixState.colPins = cp; }
+  renderMatrix();
+}
+
+function parseRulesMk(text) {
+  const tglMap = {
+    'POINTING_DEVICE_ENABLE': 'tgl-pde',
+    'SPI_DRIVER_REQUIRED': 'tgl-spi',
+    'NKRO_ENABLE': 'tgl-nkro',
+    'BOOTMAGIC_ENABLE': 'tgl-bootmagic',
+    'MOUSEKEY_ENABLE': 'tgl-mousekey',
+    'EXTRAKEY_ENABLE': 'tgl-extrakey',
+    'CONSOLE_ENABLE': 'tgl-console',
+    'COMMAND_ENABLE': 'tgl-command',
+    'TAP_DANCE_ENABLE': 'tgl-tapdance',
+    'COMBO_ENABLE': 'tgl-combo',
+    'KEY_OVERRIDE_ENABLE': 'tgl-keyoverride',
+    'ENCODER_ENABLE': 'tgl-encoder',
+    'OLED_ENABLE': 'tgl-oled',
+    'WPM_ENABLE': 'tgl-wpm',
+    'AUTOCORRECT_ENABLE': 'tgl-autocorrect',
+    'CAPS_WORD_ENABLE': 'tgl-capsword',
+    'RGBLIGHT_ENABLE': 'tgl-rgblight',
+    'RGB_MATRIX_ENABLE': 'tgl-rgbmatrix',
+  };
+  for (const [key, tgl] of Object.entries(tglMap)) {
+    const m = text.match(new RegExp(`^${key}\\s*=\\s*(yes|no)`, 'm'));
+    if (m) setTgl(tgl, m[1] === 'yes');
+  }
+  // Parse SERIAL_DRIVER value
+  const sdm = text.match(/^SERIAL_DRIVER\s*=\s*(\S+)/m);
+  if (sdm) {
+    const el = document.getElementById('serialDriver');
+    if (el) { el.value = sdm[1]; updateSerialDriverUI(); }
+  }
+}
+
+function parseInfoJson(text) {
+  try {
+    const j = JSON.parse(text);
+    _rawInfoJson = j; // preserve entire object — we'll merge on save
+
+    // ── General Metadata ──
+    if (j.keyboard_name) document.getElementById('kbName').value = j.keyboard_name;
+    if (j.manufacturer)  document.getElementById('kbMfr').value = j.manufacturer;
+    if (j.maintainer)    document.getElementById('kbMaintainer').value = j.maintainer;
+
+    // ── USB ──
+    if (j.usb?.vid) document.getElementById('usbVid').value = j.usb.vid;
+    if (j.usb?.pid) document.getElementById('usbPid').value = j.usb.pid;
+
+    // ── Hardware ──
+    if (j.processor)  document.getElementById('processor').value  = j.processor;
+    if (j.bootloader) document.getElementById('bootloader').value = j.bootloader;
+    if (j.board)      document.getElementById('board').value      = j.board;
+
+    // ── Matrix ──
+    if (j.diode_direction) document.getElementById('diodeDir').value = j.diode_direction;
+    if (j.debounce != null) document.getElementById('cfgDebounce').value = j.debounce;
+
+    const mp = j.matrix_pins;
+    if (mp) {
+      const rows = Array.isArray(mp.rows) ? mp.rows : [];
+      const cols = Array.isArray(mp.cols) ? mp.cols : [];
+      if (rows.length) { matrixState.rows = rows.length; matrixState.rowPins = rows.slice(); }
+      if (cols.length) { matrixState.cols = cols.length; matrixState.colPins = cols.slice(); }
+      if (mp.io_delay != null) document.getElementById('cfgMatrixIoDelay').value = mp.io_delay;
+      document.getElementById('kbRows').value = matrixState.rows;
+      document.getElementById('kbCols').value = matrixState.cols;
+      syncHiddenPinInputs();
+      renderMatrix();
+    }
+
+    // ── Tapping ──
+    if (j.tapping) {
+      if (j.tapping.term != null)                    document.getElementById('cfgTappingTerm').value = j.tapping.term;
+      if (j.tapping.permissive_hold != null)         setTgl('tgl-permissive-hold',  j.tapping.permissive_hold);
+      if (j.tapping.hold_on_other_key_press != null) setTgl('tgl-hold-on-other',    j.tapping.hold_on_other_key_press);
+      if (j.tapping.retro != null)                   setTgl('tgl-retro-tapping',    j.tapping.retro);
+    }
+
+    // ── One Shot ──
+    if (j.oneshot?.timeout != null) document.getElementById('cfgOneshotTimeout').value = j.oneshot.timeout;
+
+    // ── Combo ──
+    if (j.combo?.term != null) document.getElementById('cfgComboTerm').value = j.combo.term;
+
+    // ── Leader Key ──
+    if (j.leader_key?.timeout != null) document.getElementById('cfgLeaderTimeout').value = j.leader_key.timeout;
+
+    // ── Locking ──
+    if (j.qmk?.locking?.enabled != null) setTgl('tgl-locking',        j.qmk.locking.enabled);
+    if (j.qmk?.locking?.resync  != null) setTgl('tgl-locking-resync', j.qmk.locking.resync);
+
+    // ── Features ──
+    const f = j.features || {};
+    const featureMap = {
+      'bootmagic':    'tgl-bootmagic',
+      'mousekey':     'tgl-mousekey',
+      'extrakey':     'tgl-extrakey',
+      'nkro':         'tgl-nkro',
+      'tap_dance':    'tgl-tapdance',
+      'combo':        'tgl-combo',
+      'key_override': 'tgl-keyoverride',
+      'encoder':      'tgl-encoder',
+      'oled':         'tgl-oled',
+      'wpm':          'tgl-wpm',
+      'autocorrect':  'tgl-autocorrect',
+      'caps_word':    'tgl-capsword',
+      'rgblight':     'tgl-rgblight',
+      'rgb_matrix':   'tgl-rgbmatrix',
+      'console':      'tgl-console',
+    };
+    for (const [key, tglId] of Object.entries(featureMap)) {
+      if (f[key] != null) setTgl(tglId, !!f[key]);
+    }
+
+    // ── Encoder ──
+    const encs = j.encoder?.rotary;
+    if (Array.isArray(encs)) {
+      if (encs[0]?.pin_a) document.getElementById('encAPin').value  = encs[0].pin_a;
+      if (encs[0]?.pin_b) document.getElementById('encBPin').value  = encs[0].pin_b;
+      if (encs[1]?.pin_a) document.getElementById('encAPin2').value = encs[1].pin_a;
+      if (encs[1]?.pin_b) document.getElementById('encBPin2').value = encs[1].pin_b;
+    }
+
+    // ── RGB ──
+    if (j.rgblight?.led_count != null) document.getElementById('rgbCount').value = j.rgblight.led_count;
+    if (j.rgblight?.driver)            document.getElementById('rgbType').value  = j.rgblight.driver.toUpperCase() || 'WS2812';
+    if (j.ws2812?.pin)                 document.getElementById('rgbPin').value   = j.ws2812.pin;
+
+    // ── Split — support both new schema keys and legacy keys ──
+    const sp = j.split;
+    if (sp) {
+      // serial pin: new = split.serial.pin, legacy = split.soft_serial_pin
+      const sPin = sp.serial?.pin || sp.soft_serial_pin;
+      if (sPin) document.getElementById('serialPin').value = sPin;
+      if (sp.serial?.driver) {
+        document.getElementById('serialDriver').value = sp.serial.driver;
+        updateSerialDriverUI();
+      }
+      // handedness
+      if (sp.handedness?.pin) {
+        document.getElementById('handPin').value    = sp.handedness.pin;
+        document.getElementById('sideDetect').value = 'pin';
+      }
+      // usb_detect
+      if (sp.usb_detect?.enabled != null) setTgl('tgl-usb-detect', sp.usb_detect.enabled);
+      // transport sync — new: transport.sync.*, legacy: transport.sync_*
+      if (sp.transport) {
+        const t = sp.transport;
+        const s = t.sync || {};
+        const ls = s.layer_state  ?? t.sync_matrix_state;
+        const ms = s.modifiers    ?? t.sync_modifiers;
+        const is = s.indicators   ?? t.sync_led;
+        if (ls != null) setTgl('tgl-layer-sync', ls);
+        if (ms != null) setTgl('tgl-mods-sync',  ms);
+        if (is != null) setTgl('tgl-led-sync',   is);
+        if (t.watchdog != null) setTgl('tgl-watchdog', t.watchdog);
+      }
+      // master_side (legacy top-level key)
+      if (sp.master_side) {
+        const el = document.getElementById('masterSide');
+        if (el) el.value = sp.master_side;
+      }
+    }
+
+  } catch(e) { console.warn('info.json parse error', e); }
+}
+
+function parseKeymapC(text) {
+  // Match [LAYER] = LAYOUT_xxx( ... ) — capture the macro name too
+  const layerMatches = [...text.matchAll(/\[(\w+)\]\s*=\s*(LAYOUT[_\w]*)\s*\(([^)]+)\)/g)];
+  keymapData = [];
+
+  // Restore LAYER_NAMES from enum or layer keys
+  const enumMatch = text.match(/enum\s+layers\s*\{([^}]+)\}/);
+  if (enumMatch) {
+    const names = enumMatch[1].split(',').map(s => s.trim()).filter(Boolean);
+    if (names.length) { LAYER_NAMES = names; currentLayer = 0; }
+  } else if (layerMatches.length) {
+    LAYER_NAMES = layerMatches.map(m => m[1]);
+    currentLayer = 0;
+  }
+
+  // Extract and set the LAYOUT macro name from the first match
+  if (layerMatches.length > 0) {
+    const macroName = layerMatches[0][2];
+    const layoutNameEl = document.getElementById('layoutName');
+    if (layoutNameEl && macroName) layoutNameEl.value = macroName;
+  }
+
+  const cols = parseInt(document.getElementById('kbCols').value) || 6;
+  const rows = parseInt(document.getElementById('kbRows').value) || 4;
+
+  layerMatches.forEach((m, li) => {
+    const keys = m[3].split(',')
+      .map(k => k.trim().replace(/\/\*.*?\*\//g, '').replace(/\n/g, '').trim())
+      .filter(Boolean);
+
+    // keymapData uses visual grid: keymapData[layer][r][c]
+    // where r=0..rows-1, c=0..cols*2-1 (left: 0..cols-1, right: cols..cols*2-1)
+    // layoutKeys defines the mapping: layoutKeys[i].matrix=[matRow,matCol]
+    // We need: visual position -> keycode from keys[i]
+    //
+    // Strategy: build a matrix-coord -> keycode map from layoutKeys+keys,
+    // then build visual grid using layoutKeys' x,y positions to determine
+    // visual row/col slot. Fallback: flat positional order.
+
+    const layerArr = [];
+    for (let r = 0; r < rows; r++) {
+      layerArr.push(new Array(cols * 2).fill('KC_TRNS'));
+    }
+
+    if (typeof layoutKeys !== 'undefined' && layoutKeys.length > 0) {
+      // Sort layoutKeys by y then x to get visual row order
+      // Build a visual-slot -> keycode mapping
+      // Each layoutKey has {x, y, matrix:[matRow,matCol]}
+      // Visual row = round(y), visual col = round(x) (capped to grid)
+      // But simpler: just use order of layoutKeys as positional sequence,
+      // map back to visual grid by finding which visual slot has that matrix coord.
+
+      // Build matrix-coord -> visual-slot lookup
+      // Visual grid: left half rows 0..rows-1 have matRow 0..rows-1
+      //              right half rows 0..rows-1 have matRow rows..rows*2-1
+      // visual col: left = matCol, right = matCol + cols
+      layoutKeys.forEach((lk, i) => {
+        const [matRow, matCol] = lk.matrix;
+        // Determine visual row and col from matrix coords
+        let vRow, vCol;
+        if (matRow < rows) {
+          // Left half
+          vRow = matRow;
+          vCol = matCol;
+        } else {
+          // Right half: matrix row offset by rows
+          vRow = matRow - rows;
+          vCol = matCol + cols;
+        }
+        if (vRow >= 0 && vRow < rows && vCol >= 0 && vCol < cols * 2) {
+          layerArr[vRow][vCol] = keys[i] || 'KC_TRNS';
+        }
+      });
+    } else {
+      // Fallback: flat positional — left half first, then right
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols * 2; c++) {
+          layerArr[r][c] = keys[r * cols * 2 + c] || 'KC_TRNS';
+        }
+      }
+    }
+
+    keymapData.push(layerArr);
+  });
+
+  if (keymapData.length === 0) initKeymapData();
+}
+
+// ═══════════════════════════════════════════════════
+// KEYMAP EDITOR
+// ═══════════════════════════════════════════════════
+function initKeymapData() {
+  const rows = parseInt(document.getElementById('kbRows').value) || 4;
+  const cols = parseInt(document.getElementById('kbCols').value) || 6;
+  keymapData = [];
+  for (let l = 0; l < LAYER_NAMES.length; l++) {
+    const layer = [];
+    for (let r = 0; r < rows; r++) {
+      const row = [];
+      for (let c = 0; c < cols * 2; c++) {
+        row.push(l === 0 ? DEFAULT_KEYMAP[r]?.[c] || 'KC_TRNS' : 'KC_TRNS');
+      }
+      layer.push(row);
+    }
+    keymapData.push(layer);
+  }
+}
+
+const DEFAULT_KEYMAP = [
+  ['KC_Q','KC_W','KC_E','KC_R','KC_T','','','KC_Y','KC_U','KC_I','KC_O','KC_P'],
+  ['KC_A','KC_S','KC_D','KC_F','KC_G','','','KC_H','KC_J','KC_K','KC_L','KC_SCLN'],
+  ['KC_Z','KC_X','KC_C','KC_V','KC_B','','','KC_N','KC_M','KC_COMM','KC_DOT','KC_SLSH'],
+  ['KC_LCTL','KC_LGUI','KC_LALT','MO(1)','KC_SPC','','','KC_ENT','MO(2)','KC_BSPC','KC_RALT','KC_RCTL'],
+];
+
+function initKeymap() {
+  if (keymapData.length === 0) initKeymapData();
+  renderLayerTabs();
+  rebuildKeyboard();
+  initKeycodeGrid();
+  const sub = document.getElementById('keymapSubtitle');
+  if (sub && keymapPath) sub.textContent = keymapPath + ' — click a key to assign a keycode';
+}
+
+function rebuildKeyboard() {
+  const rows = parseInt(document.getElementById('kbRows').value) || 4;
+  const cols = parseInt(document.getElementById('kbCols').value) || 6;
+  const vis = document.getElementById('keyboardVisual');
+  vis.innerHTML = '';
+
+  if (keymapData.length === 0 || !keymapData[currentLayer]) initKeymapData();
+
+  for (let r = 0; r < rows; r++) {
+    const row = document.createElement('div');
+    row.className = 'kb-row';
+
+    // Left half
+    for (let c = 0; c < cols; c++) {
+      const key = makeKey(r, c, rows, cols);
+      row.appendChild(key);
+    }
+
+    // Gap
+    const gap = document.createElement('div');
+    gap.className = 'split-gap';
+    row.appendChild(gap);
+
+    // Right half
+    for (let c = cols; c < cols * 2; c++) {
+      const key = makeKey(r, c, rows, cols);
+      row.appendChild(key);
+    }
+
+    vis.appendChild(row);
+  }
+}
+
+function makeKey(r, c, rows, cols) {
+  const div = document.createElement('div');
+  div.className = 'key';
+  div.dataset.row = r;
+  div.dataset.col = c;
+  const kc = keymapData[currentLayer]?.[r]?.[c] || 'KC_TRNS';
+  div.innerHTML = `<span class="key-label">${formatKeyLabel(kc)}</span>`;
+  div.addEventListener('click', () => selectKey(div, r, c));
+  return div;
+}
+
+function selectKey(el, r, c) {
+  document.querySelectorAll('.key').forEach(k => k.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedKey = { el, r, c };
+  const kc = keymapData[currentLayer]?.[r]?.[c] || 'KC_TRNS';
+  document.getElementById('selectedKeyLabel').textContent = `Row ${r}, Col ${c} — ${kc}`;
+}
+
+function assignKeycode(kc) {
+  if (!selectedKey) { toast('Select a key first', 'error'); return; }
+  const { el, r, c } = selectedKey;
+  if (!keymapData[currentLayer]) keymapData[currentLayer] = [];
+  if (!keymapData[currentLayer][r]) keymapData[currentLayer][r] = [];
+  keymapData[currentLayer][r][c] = kc;
+  el.querySelector('.key-label').textContent = formatKeyLabel(kc);
+  document.getElementById('selectedKeyLabel').textContent = `Row ${r}, Col ${c} — ${kc}`;
+}
+
+function formatKeyLabel(kc) {
+  return kc.replace(/^KC_/, '').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase()).substring(0, 8);
+}
+
+// ─── Dynamic layer tabs ───
+function renderLayerTabs() {
+  const container = document.getElementById('layerTabs');
+  container.innerHTML = '';
+  LAYER_NAMES.forEach((name, i) => {
+    const tab = document.createElement('div');
+    tab.className = 'layer-tab' + (i === currentLayer ? ' active' : '');
+    tab.dataset.layer = i;
+    tab.textContent = name;
+    if (LAYER_NAMES.length > 1) {
+      const rm = document.createElement('span');
+      rm.className = 'remove-layer';
+      rm.title = 'Remove layer';
+      rm.textContent = '×';
+      rm.addEventListener('click', (e) => { e.stopPropagation(); removeLayer(i); });
+      tab.appendChild(rm);
+    }
+    tab.addEventListener('click', () => {
+      currentLayer = i;
+      renderLayerTabs();
+      rebuildKeyboard();
+      const inp = document.getElementById('layerNameInput');
+      if (inp) inp.value = LAYER_NAMES[currentLayer] || '';
+    });
+    container.appendChild(tab);
+  });
+  const addTab = document.createElement('div');
+  addTab.className = 'layer-tab add-layer';
+  addTab.textContent = '+ Add Layer';
+  addTab.addEventListener('click', addLayer);
+  container.appendChild(addTab);
+  const inp = document.getElementById('layerNameInput');
+  if (inp) inp.value = LAYER_NAMES[currentLayer] || '';
+}
+
+function addLayer() {
+  const idx = LAYER_NAMES.length;
+  LAYER_NAMES.push('LAYER_' + idx);
+  const rows = parseInt(document.getElementById('kbRows').value) || 4;
+  const cols = parseInt(document.getElementById('kbCols').value) || 6;
+  const layer = [];
+  for (let r = 0; r < rows; r++) { const row = []; for (let c = 0; c < cols * 2; c++) row.push('KC_TRNS'); layer.push(row); }
+  keymapData.push(layer);
+  currentLayer = idx;
+  renderLayerTabs();
+  rebuildKeyboard();
+  toast(`Added ${LAYER_NAMES[idx]}`, 'success');
+}
+
+function removeLayer(idx) {
+  if (LAYER_NAMES.length <= 1) { toast('Cannot remove the last layer', 'error'); return; }
+  const name = LAYER_NAMES[idx];
+  LAYER_NAMES.splice(idx, 1);
+  keymapData.splice(idx, 1);
+  if (currentLayer >= LAYER_NAMES.length) currentLayer = LAYER_NAMES.length - 1;
+  renderLayerTabs();
+  rebuildKeyboard();
+  toast(`Removed ${name}`, 'success');
+}
+
+// Wire layer name input to rename current layer
+document.getElementById('layerNameInput').addEventListener('input', (e) => {
+  const name = e.target.value.trim();
+  if (!name) return;
+  LAYER_NAMES[currentLayer] = name;
+  const activeTab = document.querySelector('.layer-tab.active[data-layer]');
+  if (activeTab) {
+    const rm = activeTab.querySelector('.remove-layer');
+    activeTab.textContent = name;
+    if (rm) activeTab.appendChild(rm);
+  }
+});
+
+// ═══════════════════════════════════════════════════
+// KEYCODE GRID
+// ═══════════════════════════════════════════════════
+const KEYCODES = {
+  Basic: ['KC_A','KC_B','KC_C','KC_D','KC_E','KC_F','KC_G','KC_H','KC_I','KC_J','KC_K','KC_L','KC_M','KC_N','KC_O','KC_P','KC_Q','KC_R','KC_S','KC_T','KC_U','KC_V','KC_W','KC_X','KC_Y','KC_Z','KC_1','KC_2','KC_3','KC_4','KC_5','KC_6','KC_7','KC_8','KC_9','KC_0'],
+  Special: ['KC_ENT','KC_ESC','KC_BSPC','KC_TAB','KC_SPC','KC_MINS','KC_EQL','KC_LBRC','KC_RBRC','KC_BSLS','KC_SCLN','KC_QUOT','KC_GRV','KC_COMM','KC_DOT','KC_SLSH','KC_CAPS','KC_DEL','KC_INS','KC_HOME','KC_END','KC_PGUP','KC_PGDN'],
+  Fn: ['KC_F1','KC_F2','KC_F3','KC_F4','KC_F5','KC_F6','KC_F7','KC_F8','KC_F9','KC_F10','KC_F11','KC_F12'],
+  Mods: ['KC_LSFT','KC_RSFT','KC_LCTL','KC_RCTL','KC_LALT','KC_RALT','KC_LGUI','KC_RGUI','KC_MEH','KC_HYPR'],
+  Layers: ['MO(1)','MO(2)','MO(3)','TG(1)','TG(2)','TG(3)','TO(0)','TO(1)','TO(2)','LT(1,KC_SPC)','LT(2,KC_SPC)','DF(0)','DF(1)','OSL(1)','OSM(MOD_LSFT)'],
+  Mouse: ['KC_BTN1','KC_BTN2','KC_BTN3','KC_BTN4','KC_BTN5','KC_MS_U','KC_MS_D','KC_MS_L','KC_MS_R','KC_WH_U','KC_WH_D','KC_ACL0','KC_ACL1','KC_ACL2'],
+  Media: ['KC_MPLY','KC_MNXT','KC_MPRV','KC_MSTP','KC_MUTE','KC_VOLU','KC_VOLD','KC_BRIU','KC_BRID'],
+  Misc: ['KC_TRNS','KC_NO','QK_BOOT','QK_REBOOT','EE_CLR','QK_MAKE'],
+};
+
+let activeCat = 'Basic';
+
+function initKeycodeGrid() {
+  const catsEl = document.getElementById('keycodeCats');
+  catsEl.innerHTML = '';
+  Object.keys(KEYCODES).forEach(cat => {
+    const btn = document.createElement('div');
+    btn.className = 'cat-btn' + (cat === activeCat ? ' active' : '');
+    btn.textContent = cat;
+    btn.addEventListener('click', () => {
+      activeCat = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderKeycodeGrid(cat);
+    });
+    catsEl.appendChild(btn);
+  });
+  renderKeycodeGrid(activeCat);
+
+  document.getElementById('keycodeSearch').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    if (!q) { renderKeycodeGrid(activeCat); return; }
+    const all = Object.values(KEYCODES).flat();
+    const filtered = all.filter(k => k.toLowerCase().includes(q));
+    renderKeycodeGrid(null, filtered);
+  });
+}
+
+function renderKeycodeGrid(cat, override) {
+  const grid = document.getElementById('keycodeGrid');
+  grid.innerHTML = '';
+  const list = override || KEYCODES[cat] || [];
+  list.forEach(kc => {
+    const chip = document.createElement('div');
+    chip.className = 'kc-chip';
+    chip.textContent = kc;
+    chip.addEventListener('click', () => assignKeycode(kc));
+    grid.appendChild(chip);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// TOGGLES
+// ═══════════════════════════════════════════════════
+function toggleTgl(el) {
+  el.classList.toggle('on');
+}
+function setTgl(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('on', val);
+}
+function isTgl(id) {
+  return document.getElementById(id)?.classList.contains('on') || false;
+}
+
+// ═══════════════════════════════════════════════════
+// SECTIONS COLLAPSE
+// ═══════════════════════════════════════════════════
+function toggleSection(header) {
+  header.closest('.section').classList.toggle('section-collapsed');
+}
+
+// ═══════════════════════════════════════════════════
+// CODE GENERATORS
+// ═══════════════════════════════════════════════════
+function genConfigH() {
+  const spiBus = document.getElementById('spiBus').value;
+  const spiInstance = spiBus === 'SPI_DRIVER_1' ? 'SPID1' : 'SPID0';
+  const sck  = document.getElementById('spiSck').value.trim();
+  const mosi = document.getElementById('spiMosi').value.trim();
+  const miso = document.getElementById('spiMiso').value.trim();
+  const cs   = document.getElementById('spiCs').value.trim();
+  const cpi  = document.getElementById('tbCpi').value;
+  const rot  = document.getElementById('tbRotation').value;
+  const invertX  = isTgl('tgl-invertx');
+  const invertY  = isTgl('tgl-inverty');
+  const swapXY   = isTgl('tgl-swapxy');
+  const autoMouse = isTgl('tgl-automouse');
+  const aml = document.getElementById('autoMouseLayer').value;
+  const amt = document.getElementById('autoMouseTimeout').value;
+  const amd = document.getElementById('autoMouseDebounce').value;
+  const combined   = isTgl('tgl-combined');
+  const dragscroll = isTgl('tgl-dragscroll');
+
+  let out = `// config.h — generated by QMK Visual Editor
+// RP2040 + PMW3360 Split Keyboard
+
+#pragma once
+
+/* ── Bootloader ── */
+#define RP2040_BOOTLOADER_DOUBLE_TAP_RESET
+#define RP2040_BOOTLOADER_DOUBLE_TAP_RESET_TIMEOUT 200U
+`;
+
+  // No info.json equivalent for these:
+  const usbPoll = document.getElementById('cfgUsbPolling').value;
+  if (usbPoll != 1) out += `\n#define USB_POLLING_INTERVAL_MS ${usbPoll}`;
+
+  // Right-half matrix overrides (MATRIX_*_PINS_RIGHT)
+  const rowPinsRight = document.getElementById('matrixRowPinsRight').value.trim().split(/\s+/).filter(Boolean);
+  const colPinsRight = document.getElementById('matrixColPinsRight').value.trim().split(/\s+/).filter(Boolean);
+  if (rowPinsRight.length) out += `\n#define MATRIX_ROW_PINS_RIGHT { ${rowPinsRight.join(', ')} }`;
+  if (colPinsRight.length) out += `\n#define MATRIX_COL_PINS_RIGHT { ${colPinsRight.join(', ')} }`;
+  // Reverse cols for right half toggle
+  if (isTgl('tgl-right-col-reverse')) {
+    const reversed = matrixState.colPins.filter(Boolean).slice().reverse();
+    if (reversed.length) out += `\n#define MATRIX_COL_PINS_RIGHT { ${reversed.join(', ')} }`;
+  }
+
+  const qtt = parseInt(document.getElementById('cfgQuickTapTerm').value);
+  if (qtt > 0) out += `\n#define QUICK_TAP_TERM ${qtt}`;
+
+  if (isTgl('tgl-mouse-ext')) out += `\n#define MOUSE_EXTENDED_REPORT`;
+
+  // Split — only things with no info.json equivalent
+  const masterSide = document.getElementById('masterSide')?.value || 'none';
+  if (masterSide === 'left')  out += `\n#define MASTER_LEFT`;
+  if (masterSide === 'right') out += `\n#define MASTER_RIGHT`;
+  const sideDetect = document.getElementById('sideDetect').value;
+  if (sideDetect === 'eeprom') out += `\n#define EE_HANDS`;
+  if (isTgl('tgl-mirror'))   out += `\n#define SPLIT_TRANSPORT_MIRROR`;
+  if (combined)               out += `\n#define SPLIT_POINTING_ENABLE`;
+
+  out += `
+
+/* ── PMW3360 SPI ── */
+#define SPI_DRIVER   ${spiInstance}
+#define SPI_SCK_PIN  ${sck}
+#define SPI_MOSI_PIN ${mosi}
+#define SPI_MISO_PIN ${miso}
+#define PMW33XX_CS_PIN ${cs}
+#define PMW33XX_CPI ${cpi}
+`;
+
+  if (rot && rot !== '0') out += `#define ROTATIONAL_TRANSFORM_ANGLE ${rot}\n`;
+  const emitInvertX = invertX || swapXY;
+  const emitInvertY = invertY || swapXY;
+  if (emitInvertX) out += `#define POINTING_DEVICE_INVERT_X\n`;
+  if (emitInvertY) out += `#define POINTING_DEVICE_INVERT_Y\n`;
+  if (dragscroll) out += `#define POINTING_DEVICE_AUTO_MOUSE_ENABLE\n#define CHARYBDIS_AUTO_SNIPING_ON_LAYER ${aml}\n`;
+
+  if (autoMouse) {
+    out += `
+/* ── Auto Mouse Layer ── */
+#define POINTING_DEVICE_AUTO_MOUSE_ENABLE
+#define AUTO_MOUSE_DEFAULT_LAYER ${aml}
+#define AUTO_MOUSE_TIME ${amt}
+#define AUTO_MOUSE_DEBOUNCE ${amd}
+`;
+  }
+
+  return out;
+}
+
+function genRulesMk() {
+  const tglMap = [
+    ['POINTING_DEVICE_ENABLE', 'tgl-pde'],
+    ['POINTING_DEVICE_DRIVER', null, 'pmw3360'],
+    ['SPI_DRIVER_REQUIRED', 'tgl-spi'],
+    ['CONSOLE_ENABLE', 'tgl-console'],
+    ['COMMAND_ENABLE', 'tgl-command'],
+    ['ENCODER_ENABLE', 'tgl-encoder'],
+    ['RGBLIGHT_ENABLE', 'tgl-rgblight'],
+    ['RGB_MATRIX_ENABLE', 'tgl-rgbmatrix'],
+  ];
+
+  let out = `# rules.mk — generated by QMK Visual Editor\n\n`;
+
+  for (const entry of tglMap) {
+    const [key, tglId, forced] = entry;
+    if (forced) {
+      out += `${key} = ${forced}\n`;
+    } else {
+      out += `${key} = ${isTgl(tglId) ? 'yes' : 'no'}\n`;
+    }
+  }
+  return out;
+}
+
+function genInfoJson() {
+  // Build object strictly following the QMK info.json schema
+  // https://docs.qmk.fm/reference_info_json
+
+  const rowPins = matrixState.rowPins.filter(Boolean);
+  const colPins = matrixState.colPins.filter(Boolean);
+
+  const obj = {
+    // ── General Metadata ──
+    keyboard_name: document.getElementById('kbName').value || 'my_split_kb',
+    manufacturer:  document.getElementById('kbMfr').value  || 'handwired',
+    maintainer:    document.getElementById('kbMaintainer').value || 'qmk',
+    url: '',
+
+    // ── Hardware ──
+    processor:  'RP2040',
+    bootloader: document.getElementById('bootloader').value,
+    board:      document.getElementById('board').value,
+
+    // ── USB ──
+    usb: {
+      vid:            document.getElementById('usbVid').value || '0xFEED',
+      pid:            document.getElementById('usbPid').value || '0x0000',
+      device_version: '1.0.0',
+    },
+
+    // ── Matrix ──
+    diode_direction: document.getElementById('diodeDir').value,
+    matrix_pins: {
+      rows:     rowPins,
+      cols:     colPins,
+      io_delay: parseInt(document.getElementById('cfgMatrixIoDelay').value) || 30,
+    },
+    debounce: parseInt(document.getElementById('cfgDebounce').value) || 5,
+
+    // ── Tapping ──
+    tapping: {
+      term:                    parseInt(document.getElementById('cfgTappingTerm').value) || 200,
+      permissive_hold:         isTgl('tgl-permissive-hold'),
+      hold_on_other_key_press: isTgl('tgl-hold-on-other'),
+      retro:                   isTgl('tgl-retro-tapping'),
+    },
+
+    // ── One Shot ──
+    oneshot: {
+      timeout: parseInt(document.getElementById('cfgOneshotTimeout').value) || 300,
+    },
+
+    // ── Combo ──
+    combo: {
+      term: parseInt(document.getElementById('cfgComboTerm').value) || 50,
+    },
+
+    // ── Leader Key ──
+    leader_key: {
+      timeout: parseInt(document.getElementById('cfgLeaderTimeout').value) || 300,
+    },
+
+    // ── Locking ──
+    qmk: {
+      locking: {
+        enabled: isTgl('tgl-locking'),
+        resync:  isTgl('tgl-locking-resync'),
+      },
+    },
+
+    // ── Features ──
+    features: {
+      bootmagic:    isTgl('tgl-bootmagic'),
+      mousekey:     isTgl('tgl-mousekey'),
+      extrakey:     isTgl('tgl-extrakey'),
+      nkro:         isTgl('tgl-nkro'),
+      tap_dance:    isTgl('tgl-tapdance'),
+      combo:        isTgl('tgl-combo'),
+      key_override: isTgl('tgl-keyoverride'),
+      oled:         isTgl('tgl-oled'),
+      wpm:          isTgl('tgl-wpm'),
+      autocorrect:  isTgl('tgl-autocorrect'),
+      caps_word:    isTgl('tgl-capsword'),
+    },
+  };
+
+  // ── Encoder ──
+  const encA  = document.getElementById('encAPin').value.trim();
+  const encB  = document.getElementById('encBPin').value.trim();
+  const encA2 = document.getElementById('encAPin2').value.trim();
+  const encB2 = document.getElementById('encBPin2').value.trim();
+  if (encA && encB) {
+    obj.encoder = { rotary: [] };
+    obj.encoder.rotary.push({ pin_a: encA, pin_b: encB, resolution: 4 });
+    if (encA2 && encB2) obj.encoder.rotary.push({ pin_a: encA2, pin_b: encB2, resolution: 4 });
+    if (isTgl('tgl-encoder')) obj.features.encoder = true;
+  }
+
+  // ── RGB ── ws2812.pin per schema; rgblight.led_count + driver
+  const rgbType  = document.getElementById('rgbType').value;
+  const rgbCount = parseInt(document.getElementById('rgbCount').value) || 0;
+  const rgbPin   = document.getElementById('rgbPin').value.trim();
+  if (rgbType !== 'none' && rgbCount > 0) {
+    obj.rgblight = {
+      led_count: rgbCount,
+      driver: rgbType === 'APA102' ? 'apa102' : 'ws2812',
+    };
+    if (rgbPin && rgbType !== 'APA102') obj.ws2812 = { pin: rgbPin };
+    if (isTgl('tgl-rgblight'))  obj.features.rgblight   = true;
+    if (isTgl('tgl-rgbmatrix')) obj.features.rgb_matrix = true;
+  }
+
+  // ── Split ──
+  const serialPin    = document.getElementById('serialPin').value.trim();
+  const serialDriver = document.getElementById('serialDriver').value;
+  const sideDetect   = document.getElementById('sideDetect').value;
+  const handPin      = document.getElementById('handPin').value.trim();
+  obj.split = {
+    enabled: true,
+    serial: {
+      driver: serialDriver || 'vendor',
+      ...(serialDriver !== 'vendor' && serialPin ? { pin: serialPin } : {}),
+    },
+    ...(sideDetect === 'pin' && handPin ? { handedness: { pin: handPin } } : {}),
+    usb_detect: { enabled: isTgl('tgl-usb-detect') },
+    transport: {
+      sync: {
+        layer_state: isTgl('tgl-layer-sync'),
+        modifiers:   isTgl('tgl-mods-sync'),
+        indicators:  isTgl('tgl-led-sync'),
+      },
+      watchdog: isTgl('tgl-watchdog'),
+    },
+  };
+
+  // Merge: start from preserved raw JSON, overlay our edited keys
+  const merged = Object.assign({}, _rawInfoJson, obj);
+
+  // Deep-merge nested objects
+  for (const key of ['usb', 'features', 'split', 'tapping', 'oneshot', 'combo', 'leader_key', 'qmk']) {
+    if (_rawInfoJson[key] && obj[key]) {
+      merged[key] = Object.assign({}, _rawInfoJson[key], obj[key]);
+    }
+  }
+
+  // Encoder and rgblight: only overwrite if we have values
+  if (!obj.encoder && _rawInfoJson.encoder)  merged.encoder  = _rawInfoJson.encoder;
+  if (!obj.rgblight && _rawInfoJson.rgblight) merged.rgblight = _rawInfoJson.rgblight;
+
+  // Inject current layout editor keys
+  const layoutName = document.getElementById('layoutName')?.value || 'LAYOUT';
+  if (typeof layoutKeys !== 'undefined' && layoutKeys.length > 0) {
+    if (!merged.layouts) merged.layouts = {};
+    merged.layouts[layoutName] = { layout: buildLayoutObject() };
+  }
+
+  return JSON.stringify(merged, (k, v) => v === undefined ? undefined : v, 4);
+}
+
+function genKeymapC() {
+  const rows = parseInt(document.getElementById('kbRows').value) || 4;
+  const cols = parseInt(document.getElementById('kbCols').value) || 6;
+  const layoutMacro = (document.getElementById('layoutName')?.value || 'LAYOUT').trim() || 'LAYOUT';
+
+  // Number of keys per layer must match the LAYOUT macro exactly.
+  // Source of truth: layoutKeys array (from Layout Editor / info.json).
+  // If layout is defined, use its key count. Otherwise fall back to rows*cols*2.
+  const layoutKeyCount = (typeof layoutKeys !== 'undefined' && layoutKeys.length > 0)
+    ? layoutKeys.length
+    : rows * cols * 2;
+
+  // Build a matrix-position → keycode lookup from layoutKeys so we can
+  // output keys in the exact order the LAYOUT macro expects.
+  // layoutKeys[i].matrix = [row, col] maps to keymapData[layer][row][col].
+  // Map a layoutKey's matrix coord back to the visual grid slot
+  // Visual grid: left half matRow<rows -> vRow=matRow, vCol=matCol
+  //              right half matRow>=rows -> vRow=matRow-rows, vCol=matCol+cols
+  const matrixToKeycode = (layer, layoutEntry) => {
+    const [matRow, matCol] = layoutEntry.matrix;
+    let vRow, vCol;
+    if (matRow < rows) {
+      vRow = matRow; vCol = matCol;
+    } else {
+      vRow = matRow - rows; vCol = matCol + cols;
+    }
+    return (keymapData[layer]?.[vRow]?.[vCol]) || 'KC_TRNS';
+  };
+
+  let out = `// keymap.c — generated by QMK Visual Editor
+#include QMK_KEYBOARD_H
+
+enum layers { `;
+  out += LAYER_NAMES.join(', ');
+  out += ` };\n\nconst uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {\n\n`;
+
+  for (let l = 0; l < keymapData.length; l++) {
+    out += `    [${LAYER_NAMES[l] || 'LAYER_' + l}] = ${layoutMacro}(\n`;
+
+    if (typeof layoutKeys !== 'undefined' && layoutKeys.length > 0) {
+      // Use layout order — keys in the exact sequence the macro expects
+      const keycodes = layoutKeys.map(lk => matrixToKeycode(l, lk));
+      // Output ~8 per line for readability
+      const lineSize = cols * 2 || 8;
+      for (let i = 0; i < keycodes.length; i += lineSize) {
+        const slice = keycodes.slice(i, i + lineSize);
+        const isLast = i + lineSize >= keycodes.length;
+        out += `        ${slice.join(', ')}${isLast ? '' : ','}\n`;
+      }
+    } else {
+      // Fallback: flat grid order
+      const allKeys = [];
+      for (let r = 0; r < rows; r++) {
+        const rowKeys = keymapData[l]?.[r] || [];
+        for (let c = 0; c < cols * 2; c++) allKeys.push(rowKeys[c] || 'KC_TRNS');
+      }
+      for (let r = 0; r < rows; r++) {
+        const slice = allKeys.slice(r * cols * 2, (r + 1) * cols * 2);
+        const isLast = r === rows - 1;
+        out += `        ${slice.join(', ')}${isLast ? '' : ','}\n`;
+      }
+    }
+
+    out += `    )`;
+    if (l < keymapData.length - 1) out += ',';
+    out += '\n\n';
+  }
+  out += `};\n`;
+  return out;
+}
+
+// ═══════════════════════════════════════════════════
+// PREVIEW
+// ═══════════════════════════════════════════════════
+function showPreview(type) {
+  currentPreview = type;
+  const body = document.getElementById('previewBody');
+  const title = document.getElementById('previewTitle');
+  let content = '';
+  if (type === 'config') { title.textContent = 'config.h'; content = genConfigH(); }
+  else if (type === 'rules') { title.textContent = 'rules.mk'; content = genRulesMk(); }
+  else if (type === 'info') { title.textContent = 'info.json'; content = genInfoJson(); }
+  else if (type === 'keymap') { title.textContent = 'keymap.c'; content = genKeymapC(); }
+  body.innerHTML = syntaxHighlight(content);
+}
+
+function syntaxHighlight(code) {
+  return code
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(\/\/[^\n]*)/g, '<span class="cmt">$1</span>')
+    .replace(/(#define|#pragma|#include|#ifdef|#endif|#if|#else)\b/g, '<span class="kw">$1</span>')
+    .replace(/\b(yes|no|true|false)\b/g, '<span class="val">$1</span>')
+    .replace(/\b(0x[0-9A-Fa-f]+|\d+)\b/g, '<span class="num">$1</span>');
+}
+
+function copyPreview() {
+  const text = document.getElementById('previewBody').textContent;
+  navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard', 'success'));
+}
+
+// ═══════════════════════════════════════════════════
+// SAVE
+// ═══════════════════════════════════════════════════
+document.getElementById('saveAllBtn').addEventListener('click', saveAll);
+
+async function saveAll() {
+  if (!dirHandle) { toast('No folder open', 'error'); return; }
+
+  // Root-level files
+  const rootFiles = {
+    'config.h':  genConfigH(),
+    'rules.mk':  genRulesMk(),
+    'info.json': genInfoJson(),
+  };
+
+  let saved = 0;
+  for (const [name, fileContent] of Object.entries(rootFiles)) {
+    try {
+      const fh = await dirHandle.getFileHandle(name, { create: true });
+      const w  = await fh.createWritable();
+      await w.write(fileContent);
+      await w.close();
+      saved++;
+    } catch(e) {
+      toast(`Failed to save ${name}: ${e.message}`, 'error');
+    }
+  }
+
+  // keymap.c — write to existing location, or create keymaps/default/keymap.c
+  try {
+    let targetDirHandle = keymapDirHandle;
+    let targetPath = keymapPath || 'keymaps/default/keymap.c';
+
+    if (!targetDirHandle) {
+      // Create keymaps/default/ if needed
+      const keymapsDir  = await dirHandle.getDirectoryHandle('keymaps',  { create: true });
+      const defaultDir  = await keymapsDir.getDirectoryHandle('default', { create: true });
+      targetDirHandle   = defaultDir;
+      keymapDirHandle   = defaultDir;
+      keymapPath        = 'keymaps/default/keymap.c';
+      targetPath        = keymapPath;
+    }
+
+    const fh = await targetDirHandle.getFileHandle('keymap.c', { create: true });
+    const w  = await fh.createWritable();
+    await w.write(genKeymapC());
+    await w.close();
+    saved++;
+
+    toast(`Saved ${saved} files — keymap → ${targetPath}`, 'success');
+  } catch(e) {
+    toast(`Failed to save keymap.c: ${e.message}`, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════
+function toast(msg, type = 'success') {
+  const container = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type === 'success' ? 'ok' : 'err'}</span><span>${msg}</span>`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ═══════════════════════════════════════════════════
+// SIDE DETECT TOGGLE
+// ═══════════════════════════════════════════════════
+document.getElementById('sideDetect').addEventListener('change', (e) => {
+  document.getElementById('sideDetectPinField').style.display =
+    e.target.value === 'pin' ? 'flex' : 'none';
+});
+
+// ═══════════════════════════════════════════════════
+// RP2040 PINOUT VISUALISER
+// ═══════════════════════════════════════════════════
+
+// Physical pin layout for Generic RP2040 (Pi Pico style)
+// Each entry: { gpio, name, left: bool (left side of chip), physPos: 1-40 }
+// Left side: pins 1-20 top-to-bottom, Right side: pins 21-40 bottom-to-top
+// Pi Pico exact 40-pin header pinout
+// Left col = pins 1–20 top→bottom, Right col = pins 21–40 top→bottom
+// Physical pin numbering matches the actual Pico silkscreen
+const RP2040_PINOUT = [
+  // Left column (VBUS/power side), pins 40–21 (top → bottom)
+  { phys:1,  gpio:0,    name:'GP0',    left:false  },
+  { phys:2,  gpio:1,    name:'GP1',    left:false  },
+  { phys:3,  gpio:null, name:'GND',    left:false,  special:'gnd'   },
+  { phys:4,  gpio:2,    name:'GP2',    left:false  },
+  { phys:5,  gpio:3,    name:'GP3',    left:false  },
+  { phys:6,  gpio:4,    name:'GP4',    left:false  },
+  { phys:7,  gpio:5,    name:'GP5',    left:false  },
+  { phys:8,  gpio:null, name:'GND',    left:false,  special:'gnd'   },
+  { phys:9,  gpio:6,    name:'GP6',    left:false  },
+  { phys:10, gpio:7,    name:'GP7',    left:false  },
+  { phys:11, gpio:8,    name:'GP8',    left:false  },
+  { phys:12, gpio:9,    name:'GP9',    left:false  },
+  { phys:13, gpio:null, name:'GND',    left:false,  special:'gnd'   },
+  { phys:14, gpio:10,   name:'GP10',   left:false  },
+  { phys:15, gpio:11,   name:'GP11',   left:false  },
+  { phys:16, gpio:12,   name:'GP12',   left:false  },
+  { phys:17, gpio:13,   name:'GP13',   left:false  },
+  { phys:18, gpio:null, name:'GND',    left:false,  special:'gnd'   },
+  { phys:19, gpio:14,   name:'GP14',   left:false  },
+  { phys:20, gpio:15,   name:'GP15',   left:false  },
+
+  // Right column (GPIO side), pins 1–20 (top → bottom)
+  { phys:40, gpio:null, name:'VBUS',   left:true, special:'power' },
+  { phys:39, gpio:null, name:'VSYS',   left:true, special:'power' },
+  { phys:38, gpio:null, name:'GND',    left:true, special:'gnd'   },
+  { phys:37, gpio:null, name:'3V3_EN', left:true, special:'power' },
+  { phys:36, gpio:null, name:'3V3',    left:true, special:'power' },
+  { phys:35, gpio:null, name:'ADC_REF',left:true, special:'power' },
+  { phys:34, gpio:28,   name:'GP28',   left:true },
+  { phys:33, gpio:null, name:'AGND',   left:true, special:'gnd'   },
+  { phys:32, gpio:27,   name:'GP27',   left:true },
+  { phys:31, gpio:26,   name:'GP26',   left:true },
+  { phys:30, gpio:null, name:'RUN',    left:true, special:'power' },
+  { phys:29, gpio:22,   name:'GP22',   left:true },
+  { phys:28, gpio:null, name:'GND',    left:true, special:'gnd'   },
+  { phys:27, gpio:21,   name:'GP21',   left:true },
+  { phys:26, gpio:20,   name:'GP20',   left:true },
+  { phys:25, gpio:19,   name:'GP19',   left:true },
+  { phys:24, gpio:18,   name:'GP18',   left:true },
+  { phys:23, gpio:null, name:'GND',    left:true, special:'gnd'   },
+  { phys:22, gpio:17,   name:'GP17',   left:true },
+  { phys:21, gpio:16,   name:'GP16',   left:true },
+];
+
+// Bottom pads (not on header) — RP2040 internal: GP23, GP24, GP25 (Pico LED/SMPS/VBUS sense), GP29 (ADC3/VSYS sense)
+const RP2040_BOTTOM = [
+  { gpio:23, name:'GP23', note:'SMPS mode' },
+  { gpio:24, name:'GP24', note:'VBUS sense' },
+  { gpio:25, name:'GP25', note:'LED' },
+  { gpio:29, name:'GP29',  note:'ADC3/VSYS' },
+];
+
+const ROLE_STYLES = {
+  'matrix-row': { fill:'#1a3a2a', stroke:'#5de4c7', label:'Matrix Row' },
+  'matrix-col': { fill:'#1a2a3a', stroke:'#7b9ef0', label:'Matrix Col' },
+  'trackball':  { fill:'#3a2a1a', stroke:'#f0a86b', label:'Trackball SPI' },
+  'split':      { fill:'#2a1a3a', stroke:'#c084fc', label:'Split / TRRS' },
+  'rgb':        { fill:'#3a1a2a', stroke:'#f472b6', label:'RGB' },
+  'encoder':    { fill:'#1a3a3a', stroke:'#34d399', label:'Encoder' },
+  'conflict':   { fill:'#3a1a1a', stroke:'#f06b6b', label:'Conflict!' },
+  'free':       { fill:'#1a1e29', stroke:'#2a2f3f', label:'Free' },
+  'power':      { fill:'#1e1e14', stroke:'#6b6b3a', label:'Power' },
+  'gnd':        { fill:'#161a1e', stroke:'#4a5060', label:'GND' },
+  'debug':      { fill:'#181822', stroke:'#4a4a6a', label:'Debug' },
+  'usb':        { fill:'#161e18', stroke:'#3a5a3a', label:'USB' },
+};
+
+// RP2040 hardware peripheral capabilities per GPIO
+const PIN_CAPS = {
+  0:  ['SPI0','I2C0','UART0'], 1:  ['SPI0','I2C0','UART0'],
+  2:  ['SPI0','I2C1'],         3:  ['SPI0','I2C1'],
+  4:  ['SPI0','I2C0','UART1'], 5:  ['SPI0','I2C0','UART1'],
+  6:  ['SPI0','I2C1'],         7:  ['SPI0','I2C1'],
+  8:  ['SPI1','I2C0','UART1'], 9:  ['SPI1','I2C0','UART1'],
+  10: ['SPI1','I2C1'],         11: ['SPI1','I2C1'],
+  12: ['SPI1','I2C0','UART0'], 13: ['SPI1','I2C0','UART0'],
+  14: ['SPI1','I2C1'],         15: ['SPI1','I2C1'],
+  16: ['SPI0','I2C0','UART0'], 17: ['SPI0','I2C0','UART0'],
+  18: ['SPI0','I2C1'],         19: ['SPI0','I2C1'],
+  20: ['SPI0','I2C0','UART1'], 21: ['SPI0','I2C0','UART1'],
+  22: ['SPI0','I2C1'],         23: ['SPI0','I2C1'],
+  24: ['SPI1','I2C0','UART1'], 25: ['SPI1','I2C0','UART1'],
+  26: ['SPI1','I2C1'],         27: ['SPI1','I2C1'],
+  28: ['I2C0','UART0'],
+};
+
+// Capability badge colours
+const CAP_COLOURS = {
+  'SPI0':  '#7b9ef0',  // blue
+  'SPI1':  '#a78bfa',  // violet
+  'I2C0':  '#34d399',  // green
+  'I2C1':  '#2dd4bf',  // teal
+  'UART0': '#f0a86b',  // orange
+  'UART1': '#fb923c',  // amber-orange
+};
+
+function getPinRole(gpioNum, usedMap) {
+  if (gpioNum === null || gpioNum === undefined) return null;
+  const key = `GP${gpioNum}`;
+  const uses = usedMap[key];
+  if (!uses || uses.length === 0) return 'free';
+  if (uses.length > 1) return 'conflict';
+  const src = uses[0].source.toLowerCase();
+  if (src === 'matrix' && uses[0].label.startsWith('Row')) return 'matrix-row';
+  if (src === 'matrix') return 'matrix-col';
+  if (src === 'trackball') return 'trackball';
+  if (src === 'split') return 'split';
+  if (src === 'rgb') return 'rgb';
+  if (src === 'encoder') return 'encoder';
+  return 'free';
+}
+
+function getPinTooltip(gpioNum, usedMap) {
+  const key = `GP${gpioNum}`;
+  const uses = usedMap[key];
+  if (!uses || uses.length === 0) return `GP${gpioNum} — free`;
+  return `GP${gpioNum} — ${uses.map(u => `${u.label} (${u.source})`).join(', ')}`;
+}
+
+function renderPinout() {
+  const svg = document.getElementById('rp2040Svg');
+  if (!svg) return;
+
+  const usedMap = getAllUsedPins();
+  const NS = 'http://www.w3.org/2000/svg';
+
+  function el(tag, attrs, text) {
+    const e = document.createElementNS(NS, tag);
+    for (const [k,v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  svg.innerHTML = '';
+
+  const W = 760, H = 640;
+  const chipX = 250, chipY = 24, chipW = 220, chipH = 480;
+  const PIN_H = 24, PIN_W = 195, DOT = 9;
+  const leftX = chipX - PIN_W, rightX = chipX + chipW;
+  const ROWS = 20;
+  const rowH = chipH / ROWS;
+
+  // ── Chip body ──
+  svg.appendChild(el('rect', {
+    x: chipX, y: chipY, width: chipW, height: chipH,
+    rx: 10, ry: 10,
+    fill: '#0f1117', stroke: '#363d52', 'stroke-width': '1.5'
+  }));
+
+  // Chip label
+  svg.appendChild(el('text', {
+    x: chipX + chipW/2, y: chipY + chipH/2 - 14,
+    'text-anchor':'middle', 'font-size':'15', fill:'#4a5568',
+    'font-family':'Syne,sans-serif', 'font-weight':'700'
+  }, 'RP2040'));
+  svg.appendChild(el('text', {
+    x: chipX + chipW/2, y: chipY + chipH/2 + 6,
+    'text-anchor':'middle', 'font-size':'9', fill:'#2d3748',
+    'font-family':'JetBrains Mono,monospace'
+  }, 'Dual Cortex-M0+'));
+  svg.appendChild(el('text', {
+    x: chipX + chipW/2, y: chipY + chipH/2 + 20,
+    'text-anchor':'middle', 'font-size':'9', fill:'#2d3748',
+    'font-family':'JetBrains Mono,monospace'
+  }, '264KB SRAM · 2MB Flash'));
+
+  // USB notch
+  svg.appendChild(el('rect', {
+    x: chipX + chipW/2 - 20, y: chipY - 10, width: 40, height: 14,
+    rx: 3, fill:'#1a2a1a', stroke:'#444', 'stroke-width':'1'
+  }));
+  svg.appendChild(el('text', {
+    x: chipX + chipW/2, y: chipY - 1,
+    'text-anchor':'middle', 'font-size':'7', fill:'#666',
+    'font-family':'JetBrains Mono,monospace'
+  }, 'USB'));
+
+  // ── Draw a pin ──
+  function drawPin(pin, rowIdx) {
+    const isLeft = pin.left;
+    const y = chipY + rowIdx * rowH + rowH/2;
+
+    // Determine role & style
+    let role, style, tooltip, conflictPin = false;
+    if (pin.special) {
+      role = pin.special;
+      style = ROLE_STYLES[role] || ROLE_STYLES.free;
+      tooltip = pin.name;
+    } else {
+      const uses = usedMap[`GP${pin.gpio}`] || [];
+      conflictPin = uses.length > 1;
+      if (conflictPin) {
+        // Use the FIRST use's role for the dot colour, flag conflict for box only
+        const firstSrc = uses[0].source.toLowerCase();
+        const firstLbl = uses[0].label || '';
+        if (firstSrc === 'matrix' && firstLbl.startsWith('Row')) role = 'matrix-row';
+        else if (firstSrc === 'matrix') role = 'matrix-col';
+        else if (firstSrc === 'trackball') role = 'trackball';
+        else if (firstSrc === 'split') role = 'split';
+        else if (firstSrc === 'rgb') role = 'rgb';
+        else if (firstSrc === 'encoder') role = 'encoder';
+        else role = 'free';
+      } else {
+        role = getPinRole(pin.gpio, usedMap);
+      }
+      style = ROLE_STYLES[role] || ROLE_STYLES.free;
+      tooltip = getPinTooltip(pin.gpio, usedMap);
+    }
+
+    const g = el('g', { class: 'pinout-pin' });
+
+    // Pin trace line from chip edge
+    const lineX1 = isLeft ? chipX : chipX + chipW;
+    const lineX2 = isLeft ? chipX - 16 : chipX + chipW + 16;
+    g.appendChild(el('line', {
+      x1: lineX1, y1: y, x2: lineX2, y2: y,
+      stroke: style.stroke, 'stroke-width':'1.5', opacity:'0.6'
+    }));
+
+    // Pin dot — free pins are larger and lighter so the number is readable
+    const dotX   = isLeft ? chipX - 16 : chipX + chipW + 16;
+    const isFree    = role === 'free';
+    const isSpecial = !!pin.special;  // GND, power, debug, USB — no GPIO number
+    // Free GPIO pins: bigger dot, light readable number
+    // Special non-pins: smaller dot (diamond shape via rotation), lighter label
+    // Assigned GPIO: normal dot with role colour
+    const dotR      = isFree ? DOT + 2 : isSpecial ? DOT - 2 : DOT;
+    // For conflict pins: dot keeps the underlying role colour (style already = conflict style).
+    // We override this below for box only. Store the actual role style separately.
+    const dotFill   = isFree ? '#1e2433' : style.fill;
+    const dotStroke = isFree ? '#4a5568' : style.stroke;
+    const numColour = isFree ? '#94a3b8' : style.stroke;
+    const isConflict = role === 'conflict';
+
+    if (isSpecial) {
+      // Small rotated square (diamond) for GND/power/debug/USB — visually distinct from GPIO dots
+      const s = dotR * 0.85;
+      g.appendChild(el('rect', {
+        x: dotX - s, y: y - s, width: s * 2, height: s * 2,
+        fill: dotFill, stroke: dotStroke, 'stroke-width':'1',
+        transform: `rotate(45,${dotX},${y})`
+      }));
+    } else {
+      // Circle for GPIO pins
+      const dot = el('circle', {
+        cx: dotX, cy: y, r: dotR,
+        fill: dotFill, stroke: dotStroke,
+        'stroke-width': role === 'conflict' ? '2' : isFree ? '1' : '1.2'
+      });
+      g.appendChild(dot);
+
+      // Conflict pulse ring — shown when pin is used by multiple sources
+      if (conflictPin) {
+        g.appendChild(el('circle', {
+          cx: dotX, cy: y, r: dotR + 3,
+          fill: 'none', stroke: '#f06b6b', 'stroke-width':'1.2', opacity:'0.6'
+        }));
+      }
+
+      // GPIO number inside dot — bigger and lighter for free pins
+      if (pin.gpio !== null && pin.gpio !== undefined) {
+        g.appendChild(el('text', {
+          x: dotX, y: y + 0.5,
+          'text-anchor':'middle', 'dominant-baseline':'middle',
+          'font-size': isFree ? '8' : '7',
+          fill: numColour,
+          'font-family':'JetBrains Mono,monospace', 'font-weight':'700'
+        }, `${pin.gpio}`));
+      }
+    }
+
+    // Pin label box — narrower now that badges are outside
+    const hasRole = role !== 'free' && role !== 'power' && role !== 'gnd' && role !== 'debug' && role !== 'usb' && pin.gpio !== null;
+    const uses = hasRole ? (usedMap[`GP${pin.gpio}`] || []) : [];
+    const roleText = uses.map(u => u.label).join('+').substring(0, 14);
+
+    const boxW = 96, boxH = hasRole ? 20 : 16, boxR = 3;
+    const boxX = isLeft ? chipX - 16 - dotR - 4 - boxW : chipX + chipW + 16 + dotR + 4;
+    const boxY = y - boxH / 2;
+
+    // Colour hierarchy: assigned > free > special(non-pin)
+    const boxStroke  = isSpecial ? style.stroke : isFree ? '#3a4255' : style.stroke;
+    const nameColour = isSpecial ? style.stroke : isFree ? '#94a3b8' : style.stroke;
+    const nameFill   = isSpecial ? style.fill   : isFree ? '#161a24' : style.fill;
+    const nameWeight = isSpecial ? '300'        : isFree ? '400'     : '600';
+    const swOp       = isSpecial ? '0.6' : '0.96';
+
+    const boxStrokeConflict = conflictPin ? '#f06b6b' : boxStroke;
+    const boxSwConflict     = conflictPin ? '1.8'     : (isSpecial ? '0.5' : isFree ? '0.6' : '0.7');
+    const boxFillConflict   = conflictPin ? '#f06b6b12' : nameFill;
+    g.appendChild(el('rect', {
+      x: boxX, y: boxY, width: boxW, height: boxH, rx: boxR,
+      fill: boxFillConflict, stroke: boxStrokeConflict,
+      'stroke-width': boxSwConflict,
+      opacity: swOp
+    }));
+
+    // GPIO name — centred vertically, always anchored to the chip-side edge of the box
+    const nameY = hasRole ? boxY + 6.5 : y;
+    g.appendChild(el('text', {
+      x: isLeft ? boxX + boxW - 5 : boxX + 5,
+      y: nameY,
+      'text-anchor': isLeft ? 'end' : 'start',
+      'dominant-baseline': 'middle',
+      'font-size': isSpecial ? '7.5' : '8',
+      fill: nameColour,
+      'font-family': 'JetBrains Mono,monospace',
+      'font-weight': nameWeight,
+      'font-style': isSpecial ? 'italic' : 'normal'
+    }, pin.name));
+
+    // Role label — lower half of box
+    if (hasRole) {
+      g.appendChild(el('text', {
+        x: isLeft ? boxX + boxW - 5 : boxX + 5,
+        y: boxY + 14,
+        'text-anchor': isLeft ? 'end' : 'start',
+        'dominant-baseline': 'middle',
+        'font-size': '6', fill: style.stroke, opacity: '0.7',
+        'font-family': 'JetBrains Mono,monospace'
+      }, roleText));
+    }
+
+    // Capability badges — rendered OUTSIDE the box, on the far edge away from chip
+    // Left pins: badges go further left beyond the box outer edge
+    // Right pins: badges go further right beyond the box outer edge
+    if (!isSpecial && pin.gpio !== null) {
+      const caps = PIN_CAPS[pin.gpio] || [];
+      if (caps.length) {
+        const bh  = 8;   // badge height — matches label box height nicely
+        const bGap = 2;  // horizontal gap between badges
+        const outerEdge = isLeft ? boxX : boxX + boxW;
+
+        // Pre-compute total width so left-side badges can be right-aligned flush to box
+        const bws = caps.map(cap => cap.length * 5.2 + 6);
+        const totalBW = bws.reduce((s, w) => s + w + bGap, 0) - bGap;
+
+        // Start x: left pins start so last badge ends at outerEdge-3
+        //           right pins start at outerEdge+3
+        let bx = isLeft ? outerEdge - totalBW - 3 : outerEdge + 3;
+        const by = y - bh / 2;  // vertically centred on pin row
+
+        caps.forEach((cap, ci) => {
+          const bw  = bws[ci];
+          const col = CAP_COLOURS[cap];
+
+          g.appendChild(el('rect', {
+            x: bx, y: by, width: bw, height: bh, rx: '1.5',
+            fill: col + '12',
+            stroke: col + '50',
+            'stroke-width': '0.5'
+          }));
+          g.appendChild(el('text', {
+            x: bx + bw / 2, y: by + bh / 2 + 0.3,
+            'text-anchor': 'middle', 'dominant-baseline': 'middle',
+            'font-size': '5', fill: col + '99',
+            'font-family': 'JetBrains Mono,monospace', 'font-weight': '500'
+          }, cap));
+
+          bx += bw + bGap;  // advance horizontally
+        });
+
+        tooltip += `  |  ${caps.join(' · ')}`;
+      }
+    }
+
+    // Tooltip
+    const title = el('title', {});
+    title.textContent = tooltip;
+    g.appendChild(title);
+
+    // Click any GPIO pin to open the matrix pin picker
+    if (!isSpecial && pin.gpio !== null) {
+      g.classList.add('clickable');
+      g.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openPinmapPicker(`GP${pin.gpio}`, e.clientX, e.clientY);
+      });
+    }
+
+    svg.appendChild(g);
+  }
+
+  // ── Split pins into left/right ──
+  const leftPins  = RP2040_PINOUT.filter(p => p.left);
+  // Right col: array is stored phys 40→21 (VBUS at top, GP16 at bottom) — render as-is
+  const rightPins = RP2040_PINOUT.filter(p => !p.left);
+
+  leftPins.forEach((p, i)  => drawPin(p, i));
+  rightPins.forEach((p, i) => drawPin(p, i));
+
+  // Move USB notch to bottom if VBUS is bottom — it's top here so notch stays top
+
+  // ── Bottom pads (internal, not on 40-pin header) ──
+  const bottomY = chipY + chipH + 55;
+  const bCount  = RP2040_BOTTOM.length;
+  // Centre the small cluster under the chip
+  const bSpacing = 62;
+  const bStartX  = chipX + chipW/2 - (bCount * bSpacing)/2 + bSpacing/2;
+
+  svg.appendChild(el('text', {
+    x: chipX + chipW/2, y: bottomY - 14,
+    'text-anchor':'middle', 'font-size':'8', fill:'#4a5568',
+    'font-family':'JetBrains Mono,monospace'
+  }, 'v Internal / bottom pads (not on header)'));
+
+  RP2040_BOTTOM.forEach((p, i) => {
+    const bx = bStartX + i * bSpacing;
+    const role = getPinRole(p.gpio, usedMap);
+    const style = ROLE_STYLES[role] || ROLE_STYLES.free;
+    const tooltip = `GP${p.gpio} — ${p.note}${role !== 'free' ? ' | ' + getPinTooltip(p.gpio, usedMap).split('—')[1] : ' (free)'}`;
+
+    const g = el('g', { class: 'pinout-pin' });
+
+    // Dashed line from chip bottom
+    g.appendChild(el('line', {
+      x1: bx, y1: chipY + chipH,
+      x2: bx, y2: bottomY - DOT - 2,
+      stroke: style.stroke, 'stroke-width':'1',
+      'stroke-dasharray':'3,3', opacity:'0.4'
+    }));
+
+    // Dot
+    g.appendChild(el('circle', {
+      cx: bx, cy: bottomY, r: DOT,
+      fill: style.fill, stroke: style.stroke,
+      'stroke-width': role === 'conflict' ? '2' : '1'
+    }));
+
+    // GPIO number inside dot
+    g.appendChild(el('text', {
+      x: bx, y: bottomY + 0.5,
+      'text-anchor':'middle', 'dominant-baseline':'middle',
+      'font-size':'6.5', fill: style.stroke,
+      'font-family':'JetBrains Mono,monospace', 'font-weight':'700'
+    }, `${p.gpio}`));
+
+    // GPIO name below dot
+    g.appendChild(el('text', {
+      x: bx, y: bottomY + DOT + 9,
+      'text-anchor':'middle',
+      'font-size':'7.5', fill: role !== 'free' ? style.stroke : '#4a5568',
+      'font-family':'JetBrains Mono,monospace', 'font-weight':'600'
+    }, p.name));
+
+    // Function note below name
+    g.appendChild(el('text', {
+      x: bx, y: bottomY + DOT + 19,
+      'text-anchor':'middle',
+      'font-size':'6.5', fill:'#4a5568',
+      'font-family':'JetBrains Mono,monospace'
+    }, p.note));
+
+    // Role label if assigned
+    if (role !== 'free') {
+      const uses = usedMap[`GP${p.gpio}`] || [];
+      g.appendChild(el('text', {
+        x: bx, y: bottomY + DOT + 29,
+        'text-anchor':'middle',
+        'font-size':'6', fill: style.stroke, opacity:'0.8',
+        'font-family':'JetBrains Mono,monospace'
+      }, (uses[0]?.label || '').substring(0, 10)));
+    }
+
+    const title = el('title', {});
+    title.textContent = tooltip;
+    g.appendChild(title);
+    svg.appendChild(g);
+  });
+
+  // ── Legend ──
+  const legendEl = document.getElementById('pinMapLegendFull');
+  if (legendEl) {
+    legendEl.innerHTML = '';
+
+    // ── Assigned pin roles ──
+    const rolesShown = ['matrix-row','matrix-col','trackball','split','rgb','encoder','conflict','free'];
+    rolesShown.forEach(role => {
+      const s = ROLE_STYLES[role];
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `<span class="legend-dot" style="background:${s.fill};border-color:${s.stroke};border-radius:50%;"></span>${s.label}`;
+      legendEl.appendChild(item);
+    });
+
+    // ── Divider ──
+    const div1 = document.createElement('div');
+    div1.style.cssText = 'width:100%;height:1px;background:var(--border);margin:6px 0 4px;';
+    legendEl.appendChild(div1);
+
+    // ── Special non-GPIO pin shapes ──
+    const specials = [
+      { label:'Power (VBUS/3V3/RUN)',  stroke:'#6b6b3a', fill:'#1e1e14' },
+      { label:'GND / AGND',            stroke:'#4a5060', fill:'#161a1e' },
+      { label:'Debug (SWD)',            stroke:'#4a4a6a', fill:'#181822' },
+      { label:'USB pads',              stroke:'#3a5a3a', fill:'#161e18' },
+    ];
+    specials.forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      // Diamond SVG icon to match the pinout
+      item.innerHTML = `<svg width="12" height="12" style="margin-right:5px;flex-shrink:0;" viewBox="0 0 12 12">
+        <rect x="2" y="2" width="8" height="8" rx="1"
+          fill="${s.fill}" stroke="${s.stroke}" stroke-width="1"
+          transform="rotate(45,6,6)"/>
+      </svg>${s.label}`;
+      legendEl.appendChild(item);
+    });
+
+    // ── Divider ──
+    const div2 = document.createElement('div');
+    div2.style.cssText = 'width:100%;height:1px;background:var(--border);margin:6px 0 4px;';
+    legendEl.appendChild(div2);
+
+    // ── Hardware peripheral capability badges ──
+    const capLabel = document.createElement('div');
+    capLabel.style.cssText = 'width:100%;font-size:10px;color:var(--text3);margin-bottom:4px;';
+    capLabel.textContent = 'Hardware peripherals (shown as badges on each GPIO pin):';
+    legendEl.appendChild(capLabel);
+
+    Object.entries(CAP_COLOURS).forEach(([cap, colour]) => {
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.innerHTML = `<span style="
+        display:inline-block;padding:1px 5px;border-radius:2px;margin-right:5px;
+        background:${colour}22;border:0.6px solid ${colour}88;
+        font-size:9px;font-family:var(--font-mono);color:${colour};font-weight:600;
+      ">${cap}</span>${cap.replace('0','').replace('1','')} bus ${cap.slice(-1) === '0' ? '#0' : '#1'}`;
+      legendEl.appendChild(item);
+    });
+  }
+}
+
+// Patch all pin inputs to re-render pinout on change
+function _hookPinoutRefresh() {
+  ['spiSck','spiMosi','spiMiso','spiCs','serialPin','handPin',
+   'rgbPin','encAPin','encBPin','encAPin2','encBPin2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', renderPinout);
+  });
+  document.getElementById('sideDetect').addEventListener('change', renderPinout);
+  document.getElementById('rgbType').addEventListener('change', renderPinout);
+  // Also re-render when switching to hardware panel
+  document.querySelector('[data-panel="hardware"]').addEventListener('click', () => {
+    setTimeout(renderPinout, 50);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// MATRIX PIN EDITOR
+// ═══════════════════════════════════════════════════
+const matrixState = {
+  rows: 4,
+  cols: 6,
+  rowPins: ['GP0','GP1','GP2','GP3'],
+  colPins: ['GP4','GP5','GP6','GP7','GP8','GP9'],
+  highlightRow: -1,
+  highlightCol: -1,
+};
+
+let pickerTarget = null; // { type: 'row'|'col', index }
+
+const RP2040_PINS = Array.from({length: 29}, (_, i) => `GP${i}`);
+
+function getMatrixPinConflicts() {
+  // Use getAllUsedPins() — same source the pinmap uses, already normalised
+  const usedMap = getAllUsedPins();
+  const conflictPins = new Set();
+  const details = [];
+
+  Object.entries(usedMap).forEach(([pin, uses]) => {
+    if (uses.length < 2) return;
+    // Only care about conflicts that involve a matrix pin
+    const matrixUses = uses.filter(u => u.source === 'Matrix');
+    if (matrixUses.length === 0) return;
+    conflictPins.add(pin);
+    details.push({ pin, uses });
+  });
+
+  return { conflictPins, details };
+}
+
+function updateMatrixConflictBanner({ conflictPins, details }) {
+  const box  = document.getElementById('matrixConflictBox');
+  const list = document.getElementById('matrixConflictList');
+  if (!box) return;
+  if (conflictPins.size === 0) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  list.innerHTML = '';
+
+  details.forEach(({ pin, uses }) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;padding:3px 0;border-bottom:1px solid var(--danger)20;';
+
+    // Pin name
+    const chip = document.createElement('span');
+    chip.style.cssText = 'background:var(--danger)25;border:1px solid var(--danger)60;border-radius:3px;padding:1px 7px;color:var(--danger);font-weight:700;min-width:46px;text-align:center;';
+    chip.textContent = pin;
+    row.appendChild(chip);
+
+    const arrow = document.createElement('span');
+    arrow.style.cssText = 'color:var(--text3);font-size:9px;';
+    arrow.textContent = '→';
+    row.appendChild(arrow);
+
+    // Each use as a tag
+    uses.forEach((u, i) => {
+      const isRow = u.label.startsWith('Row');
+      const isCol = u.label.startsWith('Col');
+      const tag = document.createElement('span');
+      tag.style.cssText = `border-radius:3px;padding:1px 6px;font-size:9px;font-weight:600;
+        background:${isRow ? 'var(--accent)20' : isCol ? 'var(--accent2)20' : 'var(--accent3)20'};
+        border:1px solid ${isRow ? 'var(--accent)50' : isCol ? 'var(--accent2)50' : 'var(--accent3)50'};
+        color:${isRow ? 'var(--accent)' : isCol ? 'var(--accent2)' : 'var(--accent3)'};`;
+      tag.textContent = `${u.source}: ${u.label}`;
+      row.appendChild(tag);
+    });
+
+    list.appendChild(row);
+  });
+}
+
+function renderMatrix() {
+  const { rows, cols, rowPins, colPins } = matrixState;
+  const grid = document.getElementById('matrixGrid');
+  document.getElementById('matrixRowCount').textContent = rows;
+  document.getElementById('matrixColCount').textContent = cols;
+
+  const { conflictPins, details } = getMatrixPinConflicts();
+  updateMatrixConflictBanner({ conflictPins, details });
+  // conflictPins contains normalised uppercase keys e.g. 'GP5'
+
+
+  const table = document.createElement('table');
+  table.className = 'mx-table';
+
+  // ── Header row: corner + col headers ──
+  const thead = document.createElement('tr');
+
+  const corner = document.createElement('td');
+  corner.className = 'mx-corner';
+  corner.innerHTML = `<span style="font-size:9px;line-height:1.4;">ROW<br>COL</span>`;
+  thead.appendChild(corner);
+
+  for (let c = 0; c < cols; c++) {
+    const th = document.createElement('td');
+    const pin = colPins[c] || '';
+    const pinKey = (pin || '').replace(/,/g,'').trim().toUpperCase();
+    const isConflict = pinKey && conflictPins.has(pinKey);
+    th.className = 'mx-col-header' + (isConflict ? ' conflict' : '');
+    th.innerHTML = `<span class="col-num">C${c}</span><span class="col-pin ${pin ? '' : 'unset'}">${pin || 'unset'}</span>`;
+    th.addEventListener('click', () => openPinPicker('col', c, th));
+    th.addEventListener('mouseenter', () => highlightMatrix(-1, c));
+    th.addEventListener('mouseleave', () => highlightMatrix(-1, -1));
+    thead.appendChild(th);
+  }
+  table.appendChild(thead);
+
+  // ── Data rows ──
+  for (let r = 0; r < rows; r++) {
+    const tr = document.createElement('tr');
+
+    const rh = document.createElement('td');
+    const rpin = rowPins[r] || '';
+    const rpinKey = (rpin || '').replace(/,/g,'').trim().toUpperCase();
+    const isConflict = rpinKey && conflictPins.has(rpinKey);
+    rh.className = 'mx-row-header' + (isConflict ? ' conflict' : '');
+    rh.innerHTML = `<span class="row-num">R${r}</span><span class="row-pin ${rpin ? '' : 'unset'}">${rpin || 'unset'}</span>`;
+    rh.addEventListener('click', () => openPinPicker('row', r, rh));
+    rh.addEventListener('mouseenter', () => highlightMatrix(r, -1));
+    rh.addEventListener('mouseleave', () => highlightMatrix(-1, -1));
+    tr.appendChild(rh);
+
+    for (let c = 0; c < cols; c++) {
+      const td = document.createElement('td');
+      td.className = 'mx-cell';
+      td.dataset.r = r;
+      td.dataset.c = c;
+      td.addEventListener('mouseenter', () => highlightMatrix(r, c));
+      td.addEventListener('mouseleave', () => highlightMatrix(-1, -1));
+      tr.appendChild(td);
+    }
+
+    table.appendChild(tr);
+  }
+
+  grid.innerHTML = '';
+  grid.appendChild(table);
+  syncHiddenPinInputs();
+  renderPinout();
+}
+
+function highlightMatrix(hRow, hCol) {
+  document.querySelectorAll('.mx-cell').forEach(td => {
+    const r = parseInt(td.dataset.r);
+    const c = parseInt(td.dataset.c);
+    td.classList.remove('row-hi','col-hi','both-hi');
+    if (hRow !== -1 && r === hRow && hCol !== -1 && c === hCol) td.classList.add('both-hi');
+    else if (hRow !== -1 && r === hRow) td.classList.add('row-hi');
+    else if (hCol !== -1 && c === hCol) td.classList.add('col-hi');
+  });
+}
+
+// ── Add/remove rows & cols ──
+document.getElementById('matrixAddRow').addEventListener('click', () => {
+  matrixState.rows = Math.min(12, matrixState.rows + 1);
+  renderMatrix();
+});
+document.getElementById('matrixRemoveRow').addEventListener('click', () => {
+  if (matrixState.rows <= 1) return;
+  matrixState.rows--;
+  matrixState.rowPins = matrixState.rowPins.slice(0, matrixState.rows);
+  renderMatrix();
+});
+document.getElementById('matrixAddCol').addEventListener('click', () => {
+  matrixState.cols = Math.min(16, matrixState.cols + 1);
+  renderMatrix();
+});
+document.getElementById('matrixRemoveCol').addEventListener('click', () => {
+  if (matrixState.cols <= 1) return;
+  matrixState.cols--;
+  matrixState.colPins = matrixState.colPins.slice(0, matrixState.cols);
+  renderMatrix();
+});
+
+function getAllUsedPins() {
+  // Returns { 'GP2': [{ label: 'SPI SCK', source: 'Trackball' }], ... }
+  const map = {};
+
+  function reg(pin, label, source) {
+    pin = (pin || '').trim().toUpperCase();
+    if (!pin) return;
+    if (!map[pin]) map[pin] = [];
+    map[pin].push({ label, source });
+  }
+
+  // Matrix rows & cols
+  matrixState.rowPins.forEach((p, i) => reg(p, `Row R${i}`, 'Matrix'));
+  matrixState.colPins.forEach((p, i) => reg(p, `Col C${i}`, 'Matrix'));
+
+  // Trackball SPI
+  reg(document.getElementById('spiSck')?.value,  'SPI SCK',  'Trackball');
+  reg(document.getElementById('spiMosi')?.value, 'SPI MOSI', 'Trackball');
+  reg(document.getElementById('spiMiso')?.value, 'SPI MISO', 'Trackball');
+  reg(document.getElementById('spiCs')?.value,   'SPI CS',   'Trackball');
+
+  // Split serial (TRRS / direct wire)
+  reg(document.getElementById('serialPin')?.value, 'Serial TX', 'Split');
+
+  // Split hand detection
+  if (document.getElementById('sideDetect')?.value === 'pin') {
+    reg(document.getElementById('handPin')?.value, 'Hand Pin', 'Split');
+  }
+
+  // RGB
+  const rgbType = document.getElementById('rgbType')?.value;
+  if (rgbType && rgbType !== 'none') {
+    reg(document.getElementById('rgbPin')?.value, 'RGB Data', 'RGB');
+  }
+
+  // Encoders
+  reg(document.getElementById('encAPin')?.value,  'Enc A (L)', 'Encoder');
+  reg(document.getElementById('encBPin')?.value,  'Enc B (L)', 'Encoder');
+  reg(document.getElementById('encAPin2')?.value, 'Enc A (R)', 'Encoder');
+  reg(document.getElementById('encBPin2')?.value, 'Enc B (R)', 'Encoder');
+
+  return map;
+}
+
+// ── Pin picker ──
+function openPinPickerAtPos(type, index, screenX, screenY) {
+  // Fake anchor element with getBoundingClientRect returning the click position
+  const fakeAnchor = {
+    getBoundingClientRect: () => ({
+      left: screenX, right: screenX, top: screenY, bottom: screenY + 4
+    })
+  };
+  openPinPicker(type, index, fakeAnchor);
+}
+
+function openPinPickerAtPos(type, index, screenX, screenY) {
+  const fakeAnchor = {
+    getBoundingClientRect: () => ({ left: screenX, right: screenX, top: screenY, bottom: screenY + 4 })
+  };
+  openPinPicker(type, index, fakeAnchor);
+}
+
+// ── Pinmap click picker — shows current assignments + row/col assign options ──
+function openPinmapPicker(pinName, screenX, screenY) {
+  const usedMap = getAllUsedPins();
+  const uses    = usedMap[pinName.toUpperCase()] || [];
+
+  // Find existing row/col assignments for this pin
+  const rowIdx = matrixState.rowPins.findIndex(p => (p||'').toUpperCase() === pinName.toUpperCase());
+  const colIdx = matrixState.colPins.findIndex(p => (p||'').toUpperCase() === pinName.toUpperCase());
+
+  // Reuse the existing pinPicker popup but with custom content
+  const picker  = document.getElementById('pinPicker');
+  const title   = document.getElementById('pinPickerTitle');
+  const pgrid   = document.getElementById('pinPickerGrid');
+  const overlay = document.getElementById('pinPickerOverlay');
+
+  title.textContent = `${pinName} — assign to matrix`;
+  pgrid.innerHTML   = '';
+
+  // ── Current assignments info ──
+  if (uses.length > 0) {
+    const info = document.createElement('div');
+    info.style.cssText = 'font-size:10px;color:var(--text2);margin-bottom:8px;padding:6px 8px;background:var(--surface3);border-radius:var(--radius);line-height:1.8;';
+    info.innerHTML = '<span style="color:var(--text3);">Currently:</span> ' +
+      uses.map(u => `<span style="color:var(--accent);font-weight:600;">${u.label}</span> <span style="color:var(--text3);font-size:9px;">(${u.source})</span>`).join('  ');
+    pgrid.appendChild(info);
+  }
+
+  // ── Row assignment section ──
+  const rowLabel = document.createElement('div');
+  rowLabel.style.cssText = 'font-size:10px;color:var(--accent);font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.5px;';
+  rowLabel.textContent = 'Assign as Row';
+  pgrid.appendChild(rowLabel);
+
+  const rowWrap = document.createElement('div');
+  rowWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;';
+  for (let r = 0; r < matrixState.rows; r++) {
+    const btn = document.createElement('div');
+    btn.className = 'pp-chip' + (rowIdx === r ? ' selected' : '');
+    const cur = matrixState.rowPins[r];
+    btn.textContent = `R${r}`;
+    if (cur && cur.toUpperCase() !== pinName.toUpperCase()) {
+      btn.title = `Currently: ${cur}`;
+      btn.style.opacity = '0.6';
+    }
+    btn.addEventListener('click', () => {
+      matrixState.rowPins[r] = pinName;
+      renderMatrix(); renderPinout();
+      closePinPicker();
+      toast(`${pinName} → ROW ${r}`, 'success');
+    });
+    rowWrap.appendChild(btn);
+  }
+  // Clear row button
+  if (rowIdx >= 0) {
+    const clr = document.createElement('div');
+    clr.className = 'pp-chip';
+    clr.style.cssText += 'color:var(--danger);border-color:var(--danger)50;';
+    clr.textContent = `Clear R${rowIdx}`;
+    clr.addEventListener('click', () => {
+      matrixState.rowPins[rowIdx] = '';
+      renderMatrix(); renderPinout();
+      closePinPicker();
+      toast(`${pinName} removed from ROW ${rowIdx}`, 'success');
+    });
+    rowWrap.appendChild(clr);
+  }
+  pgrid.appendChild(rowWrap);
+
+  // ── Col assignment section ──
+  const colLabel = document.createElement('div');
+  colLabel.style.cssText = 'font-size:10px;color:var(--accent2);font-weight:600;margin:4px 0 4px;text-transform:uppercase;letter-spacing:0.5px;';
+  colLabel.textContent = 'Assign as Col';
+  pgrid.appendChild(colLabel);
+
+  const colWrap = document.createElement('div');
+  colWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
+  for (let c = 0; c < matrixState.cols; c++) {
+    const btn = document.createElement('div');
+    btn.className = 'pp-chip' + (colIdx === c ? ' selected' : '');
+    const cur = matrixState.colPins[c];
+    btn.textContent = `C${c}`;
+    if (cur && cur.toUpperCase() !== pinName.toUpperCase()) {
+      btn.title = `Currently: ${cur}`;
+      btn.style.opacity = '0.6';
+    }
+    btn.addEventListener('click', () => {
+      matrixState.colPins[c] = pinName;
+      renderMatrix(); renderPinout();
+      closePinPicker();
+      toast(`${pinName} → COL ${c}`, 'success');
+    });
+    colWrap.appendChild(btn);
+  }
+  // Clear col button
+  if (colIdx >= 0) {
+    const clr = document.createElement('div');
+    clr.className = 'pp-chip';
+    clr.style.cssText += 'color:var(--danger);border-color:var(--danger)50;';
+    clr.textContent = `Clear C${colIdx}`;
+    clr.addEventListener('click', () => {
+      matrixState.colPins[colIdx] = '';
+      renderMatrix(); renderPinout();
+      closePinPicker();
+      toast(`${pinName} removed from COL ${colIdx}`, 'success');
+    });
+    colWrap.appendChild(clr);
+  }
+  pgrid.appendChild(colWrap);
+
+  // Hide the custom pin input — not needed here
+  const customRow = document.querySelector('#pinPickerCustom')?.closest('div');
+  if (customRow) customRow.style.display = 'none';
+
+  // Position and show
+  picker.style.display  = 'block';
+  overlay.style.display = 'block';
+
+  const ph = 400, pw = 280;
+  const top  = Math.min(screenY + 6, window.innerHeight - ph - 10);
+  const left = Math.min(screenX,     window.innerWidth  - pw - 10);
+  picker.style.top  = Math.max(10, top)  + 'px';
+  picker.style.left = Math.max(10, left) + 'px';
+}
+
+// Restore custom pin row visibility when regular picker opens
+const _origOpenPinPicker = openPinPicker;
+
+function openPinPicker(type, index, anchorEl) {
+  pickerTarget = { type, index };
+  const picker = document.getElementById('pinPicker');
+  const title = document.getElementById('pinPickerTitle');
+  title.textContent = type === 'row' ? `Row ${index} (R${index}) — assign GPIO` : `Col ${index} (C${index}) — assign GPIO`;
+
+  // Build global used-pins map: pin → [{ label, source }]
+  const usedPinsMap = getAllUsedPins();
+  const current = type === 'row'   ? matrixState.rowPins[index]
+                : type === 'col'   ? matrixState.colPins[index]
+                : type === 'row-r' ? matrixStateRight.rowPins[index]
+                :                    matrixStateRight.colPins[index];
+
+  const pgrid = document.getElementById('pinPickerGrid');
+  pgrid.innerHTML = '';
+  RP2040_PINS.forEach(pin => {
+    const chip = document.createElement('div');
+    chip.className = 'pp-chip';
+    const conflicts = usedPinsMap[pin] || [];
+    const isCurrent = pin === current;
+    const isUsed = conflicts.length > 0 && !isCurrent;
+
+    if (isCurrent) chip.classList.add('selected');
+    else if (isUsed) chip.classList.add('used');
+
+    chip.textContent = pin;
+
+    if (isUsed) {
+      const labels = conflicts.map(c => c.label).join(', ');
+      chip.title = `Used by: ${labels}`;
+      // Show inline label
+      const tag = document.createElement('span');
+      tag.style.cssText = 'font-size:8px;color:var(--text3);display:block;line-height:1;margin-top:2px;';
+      tag.textContent = conflicts[0].source;
+      chip.appendChild(tag);
+    }
+
+    chip.addEventListener('click', () => {
+      if (isUsed) return;
+      applyPin(pin);
+    });
+    pgrid.appendChild(chip);
+  });
+
+  // Restore custom pin input row (may have been hidden by pinmap picker)
+  const customRow = document.querySelector('#pinPickerCustom')?.closest('div');
+  if (customRow) customRow.style.display = '';
+
+  document.getElementById('pinPickerCustom').value = current || '';
+
+  // Show conflict summary
+  const conflictCount = Object.values(usedPinsMap).filter(arr => arr.length > 0).length;
+  const totalPins = RP2040_PINS.length;
+  const freeCount = totalPins - Object.keys(usedPinsMap).length;
+  let summaryEl = document.getElementById('pinPickerSummary');
+  if (!summaryEl) {
+    summaryEl = document.createElement('div');
+    summaryEl.id = 'pinPickerSummary';
+    summaryEl.style.cssText = 'font-size:10px;margin-bottom:8px;padding:6px 8px;border-radius:4px;border:1px solid;';
+    document.getElementById('pinPickerGrid').before(summaryEl);
+  }
+  const conflicts = Object.entries(usedPinsMap).filter(([, arr]) => arr.length > 1);
+  if (conflicts.length) {
+    summaryEl.style.background = 'var(--danger)10';
+    summaryEl.style.borderColor = 'var(--danger)40';
+    summaryEl.style.color = 'var(--danger)';
+    summaryEl.textContent = `${conflicts.length} pin conflict${conflicts.length > 1 ? 's' : ''} detected — ${freeCount} GPIO free`;
+  } else {
+    summaryEl.style.background = 'var(--accent)08';
+    summaryEl.style.borderColor = 'var(--accent)30';
+    summaryEl.style.color = 'var(--text3)';
+    summaryEl.textContent = `${freeCount} of ${totalPins} GPIO pins free`;
+  }
+
+  // Position near anchor
+  const rect = anchorEl.getBoundingClientRect();
+  picker.style.display = 'block';
+  document.getElementById('pinPickerOverlay').style.display = 'block';
+
+  // Smart positioning
+  const ph = 320;
+  const top = Math.min(rect.bottom + 6, window.innerHeight - ph - 10);
+  const left = Math.min(rect.left, window.innerWidth - 280);
+  picker.style.top = Math.max(10, top) + 'px';
+  picker.style.left = Math.max(10, left) + 'px';
+}
+
+function applyPin(pin) {
+  if (!pickerTarget) return;
+  const { type, index } = pickerTarget;
+  if (type === 'row') matrixState.rowPins[index] = pin;
+  else matrixState.colPins[index] = pin;
+  closePinPicker();
+  renderMatrix();
+}
+
+function clearPickerPin() {
+  if (!pickerTarget) return;
+  const { type, index } = pickerTarget;
+  if (type === 'row') matrixState.rowPins[index] = '';
+  else matrixState.colPins[index] = '';
+  closePinPicker();
+  renderMatrix();
+}
+
+function applyCustomPin() {
+  const val = document.getElementById('pinPickerCustom').value.trim().toUpperCase();
+  if (val) applyPin(val);
+}
+
+function closePinPicker() {
+  document.getElementById('pinPicker').style.display = 'none';
+  document.getElementById('pinPickerOverlay').style.display = 'none';
+  pickerTarget = null;
+}
+
+function syncHiddenPinInputs() {
+  document.getElementById('matrixRowPins').value = matrixState.rowPins.map(p => (p||'').replace(/,/g,'').trim()).filter(Boolean).join(' ');
+  document.getElementById('matrixColPins').value = matrixState.colPins.map(p => (p||'').replace(/,/g,'').trim()).filter(Boolean).join(' ');
+}
+
+// parseConfigH patch removed — matrix sync merged into original
+
+// ═══════════════════════════════════════════════════
+// TRACKBALL ORIENTATION DIAL
+// ═══════════════════════════════════════════════════
+(function initOrientDial() {
+  const dial = document.getElementById('orientDial');
+  const arrow = document.getElementById('orientArrow');
+  const input = document.getElementById('tbRotation');
+  const svgEl = document.getElementById('orientSvg');
+  const ticksEl = document.getElementById('ticks');
+
+  // Draw tick marks
+  for (let i = 0; i < 36; i++) {
+    const angle = i * 10;
+    const rad = (angle - 90) * Math.PI / 180;
+    const isMajor = i % 9 === 0;
+    const r1 = isMajor ? 54 : 56;
+    const r2 = 60;
+    const x1 = 70 + r1 * Math.cos(rad);
+    const y1 = 70 + r1 * Math.sin(rad);
+    const x2 = 70 + r2 * Math.cos(rad);
+    const y2 = 70 + r2 * Math.sin(rad);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('stroke', isMajor ? 'var(--border2)' : 'var(--border)');
+    line.setAttribute('stroke-width', isMajor ? '1.5' : '0.8');
+    ticksEl.appendChild(line);
+  }
+
+  let dragging = false;
+
+  function angleFromEvent(e) {
+    const rect = svgEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    let angle = Math.atan2(clientX - cx, -(clientY - cy)) * 180 / Math.PI;
+    if (angle < 0) angle += 360;
+    return Math.round(angle);
+  }
+
+  dial.addEventListener('mousedown', (e) => { dragging = true; e.preventDefault(); });
+  dial.addEventListener('touchstart', (e) => { dragging = true; }, { passive: true });
+  window.addEventListener('mousemove', (e) => { if (dragging) setOrientAngle(angleFromEvent(e)); });
+  window.addEventListener('touchmove', (e) => { if (dragging) setOrientAngle(angleFromEvent(e)); }, { passive: true });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  window.addEventListener('touchend', () => { dragging = false; });
+
+  // Preset buttons
+  document.querySelectorAll('.orient-preset').forEach(btn => {
+    btn.addEventListener('click', () => setOrientAngle(parseInt(btn.dataset.angle)));
+  });
+})();
+
+function setOrientAngle(angle) {
+  angle = ((angle % 360) + 360) % 360;
+  const arrow = document.getElementById('orientArrow');
+  const input = document.getElementById('tbRotation');
+  if (arrow) arrow.setAttribute('transform', `rotate(${angle},70,70)`);
+  if (input) input.value = angle;
+}
+
+// ═══════════════════════════════════════════════════
+// LAYOUT EDITOR
+// ═══════════════════════════════════════════════════
+let layoutKeys = [];    // [{matrix:[r,c], x, y, w, h, label}]
+// Multi-select: Set of indices
+let selectedKeyIdxs = new Set();
+
+function _updateDeleteSelBtn() {
+  const btn = document.getElementById('layoutDeleteSelBtn');
+  if (btn) btn.style.display = selectedKeyIdxs.size > 0 ? 'inline-flex' : 'none';
+}
+
+function getLayoutFromRaw() {
+  const nameEl = document.getElementById('layoutName');
+  let name = nameEl?.value || 'LAYOUT';
+
+  // If the named layout doesn't exist, fall back to first available key
+  if (_rawInfoJson?.layouts && !_rawInfoJson.layouts[name]) {
+    const firstKey = Object.keys(_rawInfoJson.layouts)[0];
+    if (firstKey) {
+      name = firstKey;
+      if (nameEl) nameEl.value = firstKey;
+    }
+  }
+
+  const raw = _rawInfoJson?.layouts?.[name]?.layout;
+  if (Array.isArray(raw) && raw.length > 0) {
+    layoutKeys = raw.map(k => ({
+      matrix: k.matrix ? [...k.matrix] : [0,0],
+      x:      k.x ?? 0,
+      y:      k.y ?? 0,
+      w:      k.w ?? 1,
+      h:      k.h ?? 1,
+      label:  k.label || '',
+    }));
+  }
+}
+
+function generateLayoutFromMatrix(silent) {
+  // Auto-generate a split layout from matrixState
+  // Left half: rows 0..rows-1, cols 0..cols-1
+  // Right half: same rows, cols offset by (cols+1) in x
+  const rows = matrixState.rows;
+  const cols = matrixState.cols;
+  layoutKeys = [];
+  const GAP = 1; // 1u gap between halves
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      // Left half
+      layoutKeys.push({ matrix:[r, c], x: c, y: r, w:1, h:1, label:'' });
+      // Right half — matrix rows offset by rows, cols in natural order
+      layoutKeys.push({ matrix:[r + rows, c], x: cols + GAP + c, y: r, w:1, h:1, label:'' });
+    }
+  }
+  revalidateLayout();
+  renderLayoutCanvas();
+  updateLayoutJsonPreview();
+  if (!silent) toast('Generated layout from matrix — adjust positions as needed', 'success');
+}
+
+// Cached conflict set — only recomputed when matrix row/col fields change, not on drag
+let _cachedConflicts = new Set();
+
+function revalidateLayout() {
+  const { dupes, oob } = getConflictIdxs();
+  _cachedConflicts = { dupes, oob };
+  updateConflictBanner(dupes, oob);
+  _updateAddKeyBtn(dupes, oob);
+}
+
+function _updateAddKeyBtn(dupes, oob) {
+  const btn = document.getElementById('layoutAddKeyBtn');
+  if (!btn) return;
+  // Count distinct used [row,col] positions (excluding oob which aren't real slots)
+  const usedSlots = new Set(layoutKeys
+    .filter((k, i) => !oob.has(i))
+    .map(k => k.matrix[0] + ',' + k.matrix[1])
+  );
+  const maxRow = matrixState.rows * 2;  // total rows both halves
+  const maxCol = matrixState.cols;
+  const totalSlots = maxRow * maxCol;
+  const full = usedSlots.size >= totalSlots;
+  btn.disabled = full;
+  btn.title = full ? `All ${totalSlots} matrix positions used (${maxRow} rows × ${maxCol} cols)` : '';
+}
+
+function getConflictIdxs() {
+  // Returns { dupes: Set<idx>, oob: Set<idx> }
+  // dupes = matrix[row,col] used more than once
+  // oob   = matrix[row,col] outside the actual matrix dimensions
+  //
+  // For a split keyboard: valid rows = 0 .. (matrixState.rows * 2 - 1)
+  //                       valid cols = 0 .. (matrixState.cols - 1)
+  const maxRow = matrixState.rows * 2 - 1;  // both halves
+  const maxCol = matrixState.cols - 1;
+
+  const seen  = {};
+  const dupes = new Set();
+  const oob   = new Set();
+
+  layoutKeys.forEach((k, i) => {
+    const r = k.matrix[0], c = k.matrix[1];
+
+    // Out-of-bounds check
+    if (r < 0 || r > maxRow || c < 0 || c > maxCol) {
+      oob.add(i);
+    }
+
+    // Duplicate check
+    const key = r + ',' + c;
+    if (seen[key] !== undefined) {
+      dupes.add(seen[key]);
+      dupes.add(i);
+    } else {
+      seen[key] = i;
+    }
+  });
+
+  return { dupes, oob };
+}
+
+function updateConflictBanner(dupes, oob) {
+  const box      = document.getElementById('layoutConflictBox');
+  const dupesEl  = document.getElementById('layoutConflictDupes');
+  const oobEl    = document.getElementById('layoutConflictOob');
+  if (!box) return;
+
+  const hasIssues = dupes.size > 0 || oob.size > 0;
+  box.style.display = hasIssues ? 'block' : 'none';
+  if (!hasIssues) return;
+
+  // ── Duplicates ──
+  if (dupes.size > 0) {
+    const grouped = {};
+    dupes.forEach(i => {
+      const k = layoutKeys[i];
+      const key = `[${k.matrix[0]},${k.matrix[1]}]`;
+      grouped[key] = (grouped[key] || 0) + 1;
+    });
+    dupesEl.style.display = 'block';
+    dupesEl.textContent = 'Duplicate position: '
+      + Object.entries(grouped).map(([pos, n]) => `matrix${pos} ×${n + 1}`).join('  ');
+  } else {
+    dupesEl.style.display = 'none';
+  }
+
+  // ── Out of bounds ──
+  if (oob.size > 0) {
+    const maxRow = matrixState.rows * 2 - 1;
+    const maxCol = matrixState.cols - 1;
+    const positions = [...oob].map(i => {
+      const k = layoutKeys[i];
+      return `[${k.matrix[0]},${k.matrix[1]}]`;
+    });
+    oobEl.style.display = 'block';
+    oobEl.textContent = `Out of bounds (max row ${maxRow}, max col ${maxCol}): `
+      + [...new Set(positions)].join('  ');
+  } else {
+    oobEl.style.display = 'none';
+  }
+}
+
+// ── Single shared drag state — set up ONCE, never inside a render loop ──
+const _lkDrag = {
+  active: false,
+  startMX: 0, startMY: 0,
+  startPositions: [],   // snapshot of all key positions at drag start
+  unitPx: 54,
+};
+
+window.addEventListener('mousemove', (e) => {
+  if (!_lkDrag.active) return;
+  const dx = (e.clientX - _lkDrag.startMX) / _lkDrag.unitPx;
+  const dy = (e.clientY - _lkDrag.startMY) / _lkDrag.unitPx;
+  selectedKeyIdxs.forEach(idx => {
+    if (!_lkDrag.startPositions[idx]) return;
+    layoutKeys[idx].x = Math.max(0, Math.round((_lkDrag.startPositions[idx].x + dx) * 4) / 4);
+    layoutKeys[idx].y = Math.max(0, Math.round((_lkDrag.startPositions[idx].y + dy) * 4) / 4);
+  });
+  renderLayoutCanvas();
+  _syncKeyEditor();
+  updateLayoutJsonPreview();
+});
+
+window.addEventListener('mouseup', () => {
+  _lkDrag.active = false;
+});
+
+function renderLayoutCanvas() {
+  const canvas = document.getElementById('layoutCanvas');
+  if (!canvas) return;
+
+  const unitPx = parseInt(document.getElementById('layoutUnitPx')?.value) || 54;
+  _lkDrag.unitPx = unitPx;
+  const GAP = 4;
+
+  let maxX = 0, maxY = 0;
+  layoutKeys.forEach(k => {
+    maxX = Math.max(maxX, k.x + (k.w || 1));
+    maxY = Math.max(maxY, k.y + (k.h || 1));
+  });
+  const W = Math.max(maxX * unitPx + GAP * 2, 200);
+  const H = Math.max(maxY * unitPx + GAP * 2, 120);
+
+  canvas.style.setProperty('--lk-unit', unitPx + 'px');
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  canvas.style.position = 'relative';
+  canvas.innerHTML = '';
+
+  // Grid background
+  const grid = document.createElement('div');
+  grid.className = 'layout-grid-bg';
+  canvas.appendChild(grid);
+
+  // Use cached conflict set — only recomputed when matrix row/col fields change
+  const conflictIdxs = _cachedConflicts;
+
+  layoutKeys.forEach((k, i) => {
+    const el = document.createElement('div');
+    const isSel   = selectedKeyIdxs.has(i);
+    const isDupe  = _cachedConflicts?.dupes?.has(i) || false;
+    const isOob   = _cachedConflicts?.oob?.has(i)   || false;
+    el.className  = 'lk'
+      + (isSel  ? ' selected'      : '')
+      + (isDupe ? ' conflict-dupe' : '')
+      + (isOob  ? ' conflict-oob'  : '');
+    el.style.left   = (k.x * unitPx + GAP) + 'px';
+    el.style.top    = (k.y * unitPx + GAP) + 'px';
+    el.style.width  = ((k.w || 1) * unitPx - GAP) + 'px';
+    el.style.height = ((k.h || 1) * unitPx - GAP) + 'px';
+
+    el.innerHTML = `
+      <span class="lk-matrix">${isOob ? 'x ' : isDupe ? '' : ''}${k.matrix[0]},${k.matrix[1]}</span>
+      ${k.label ? `<span class="lk-label">${k.label}</span>` : ''}
+      <span class="lk-pos">${k.x},${k.y}</span>
+    `;
+
+    // Click: Ctrl/Shift = toggle add, plain click = exclusive select
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+        if (selectedKeyIdxs.has(i)) selectedKeyIdxs.delete(i);
+        else selectedKeyIdxs.add(i);
+      } else {
+        selectedKeyIdxs.clear();
+        selectedKeyIdxs.add(i);
+      }
+      _updateDeleteSelBtn();
+      renderLayoutCanvas();
+      _syncKeyEditor();
+    });
+
+    // Mousedown: start drag via shared _lkDrag state
+    el.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      // Select exclusively if not already in selection (without modifier)
+      if (!selectedKeyIdxs.has(i) && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        selectedKeyIdxs.clear();
+        selectedKeyIdxs.add(i);
+        _updateDeleteSelBtn();
+        renderLayoutCanvas();
+        _syncKeyEditor();
+      }
+      _lkDrag.active = true;
+      _lkDrag.startMX = e.clientX;
+      _lkDrag.startMY = e.clientY;
+      _lkDrag.startPositions = layoutKeys.map(k2 => ({ x: k2.x, y: k2.y }));
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    canvas.appendChild(el);
+  });
+
+  // Click canvas background = deselect all
+  canvas.addEventListener('click', (e) => {
+    if (e.target === canvas || e.target === grid) {
+      selectedKeyIdxs.clear();
+      _updateDeleteSelBtn();
+      renderLayoutCanvas();
+      _syncKeyEditor();
+    }
+  });
+
+  document.getElementById('layoutWarnBox').style.display = layoutKeys.length === 0 ? 'block' : 'none';
+}
+
+function _syncKeyEditor() {
+  const editor = document.getElementById('layoutKeyEditor');
+  if (selectedKeyIdxs.size === 1) {
+    const i = [...selectedKeyIdxs][0];
+    editor.style.display = 'block';
+    fillKeyEditor(i);
+  } else {
+    editor.style.display = 'none';
+  }
+}
+
+function fillKeyEditor(i) {
+  const k = layoutKeys[i];
+  if (!k) return;
+  // Update input bounds to match current matrix dimensions
+  document.getElementById('lkRow').max = matrixState.rows * 2 - 1;
+  document.getElementById('lkCol').max = matrixState.cols - 1;
+  document.getElementById('lkRow').value   = k.matrix[0];
+  document.getElementById('lkCol').value   = k.matrix[1];
+  document.getElementById('lkX').value     = k.x;
+  document.getElementById('lkY').value     = k.y;
+  document.getElementById('lkW').value     = k.w ?? 1;
+  document.getElementById('lkH').value     = k.h ?? 1;
+  document.getElementById('lkLabel').value = k.label || '';
+}
+
+function updateSelectedKey() {
+  if (selectedKeyIdxs.size !== 1) return;
+  const i = [...selectedKeyIdxs][0];
+  const k = layoutKeys[i];
+  if (!k) return;
+  k.matrix[0] = parseInt(document.getElementById('lkRow').value)  || 0;
+  k.matrix[1] = parseInt(document.getElementById('lkCol').value)  || 0;
+  k.x         = parseFloat(document.getElementById('lkX').value)  || 0;
+  k.y         = parseFloat(document.getElementById('lkY').value)  || 0;
+  k.w         = parseFloat(document.getElementById('lkW').value)  || 1;
+  k.h         = parseFloat(document.getElementById('lkH').value)  || 1;
+  k.label     = document.getElementById('lkLabel').value.trim();
+  revalidateLayout();   // row/col may have changed — recheck conflicts + bounds
+  renderLayoutCanvas();
+  updateLayoutJsonPreview();
+}
+
+function deleteSelectedKeys() {
+  if (selectedKeyIdxs.size === 0) return;
+  // Delete in reverse index order so splicing doesn't shift remaining indices
+  const sorted = [...selectedKeyIdxs].sort((a, b) => b - a);
+  sorted.forEach(i => layoutKeys.splice(i, 1));
+  selectedKeyIdxs.clear();
+  _updateDeleteSelBtn();
+  document.getElementById('layoutKeyEditor').style.display = 'none';
+  revalidateLayout();
+  renderLayoutCanvas();
+  updateLayoutJsonPreview();
+  toast(`Deleted ${sorted.length} key${sorted.length > 1 ? 's' : ''}`, 'success');
+}
+
+// Keep old name working (called from inline onclick)
+function deleteSelectedKey() { deleteSelectedKeys(); }
+
+function addLayoutKey() {
+  let maxY = layoutKeys.reduce((m, k) => Math.max(m, k.y), 0);
+  // Pick the first [row,col] within actual matrix bounds that isn't already used
+  const usedMatrixKeys = new Set(layoutKeys.map(k => k.matrix[0] + ',' + k.matrix[1]));
+  const maxRow = matrixState.rows * 2;  // both halves
+  const maxCol = matrixState.cols;
+  let newRow = 0, newCol = 0, foundSlot = false;
+  outer: for (let r = 0; r < maxRow; r++) {
+    for (let c = 0; c < maxCol; c++) {
+      if (!usedMatrixKeys.has(r + ',' + c)) { newRow = r; newCol = c; foundSlot = true; break outer; }
+    }
+  }
+  // Matrix is full — button should already be disabled, but guard anyway
+  if (!foundSlot) { toast('All matrix positions are used', 'error'); return; }
+  layoutKeys.push({ matrix:[newRow, newCol], x:0, y: maxY + 1.25, w:1, h:1, label:'' });
+  const newIdx = layoutKeys.length - 1;
+  selectedKeyIdxs.clear();
+  selectedKeyIdxs.add(newIdx);
+  _updateDeleteSelBtn();
+  revalidateLayout();
+  renderLayoutCanvas();
+  fillKeyEditor(newIdx);
+  document.getElementById('layoutKeyEditor').style.display = 'block';
+  updateLayoutJsonPreview();
+}
+
+function updateLayoutJsonPreview() {
+  const el = document.getElementById('layoutJsonPreview');
+  if (!el) return;
+  const layout = buildLayoutObject();
+  el.textContent = JSON.stringify(layout, null, 2);
+}
+
+function buildLayoutObject() {
+  // Produce spec-compliant layout entries
+  // Required: matrix, x, y. Optional: w, h, label
+  return layoutKeys.map(k => {
+    const entry = {
+      matrix: [k.matrix[0], k.matrix[1]],
+      x: k.x,
+      y: k.y,
+    };
+    if ((k.w ?? 1) !== 1) entry.w = k.w;
+    if ((k.h ?? 1) !== 1) entry.h = k.h;
+    if (k.label)           entry.label = k.label;
+    return entry;
+  });
+}
+
+function copyLayoutJson() {
+  const txt = JSON.stringify(buildLayoutObject(), null, 2);
+  navigator.clipboard.writeText(txt).then(() => toast('Layout JSON copied', 'success'));
+}
+
+function importLayoutJson() {
+  const txt = prompt('Paste layout JSON array:');
+  if (!txt) return;
+  try {
+    const arr = JSON.parse(txt);
+    if (!Array.isArray(arr)) throw new Error('Expected array');
+    layoutKeys = arr.map(k => ({
+      matrix: k.matrix ? [...k.matrix] : [0,0],
+      x:  k.x ?? 0,  y: k.y ?? 0,
+      w:  k.w ?? 1,  h: k.h ?? 1,
+      label: k.label || '',
+    }));
+    selectedKeyIdx = -1;
+    revalidateLayout();
+    renderLayoutCanvas();
+    updateLayoutJsonPreview();
+    toast(`Imported ${layoutKeys.length} keys`, 'success');
+  } catch(e) { toast('Invalid JSON: ' + e.message, 'error'); }
+}
+
+// Wire up toolbar buttons
+document.getElementById('layoutAddKeyBtn').addEventListener('click', addLayoutKey);
+document.getElementById('layoutDeleteSelBtn').addEventListener('click', deleteSelectedKeys);
+document.getElementById('layoutClearBtn').addEventListener('click', () => {
+  if (!confirm('Clear all layout keys?')) return;
+  layoutKeys = []; selectedKeyIdxs.clear();
+  _updateDeleteSelBtn();
+  document.getElementById('layoutKeyEditor').style.display = 'none';
+  revalidateLayout(); renderLayoutCanvas(); updateLayoutJsonPreview();
+});
+
+// Backspace / Delete key — only when layout panel is active and focus not in an input
+document.addEventListener('keydown', (e) => {
+  const panel = document.getElementById('panel-layout');
+  if (!panel || !panel.classList.contains('active')) return;
+  if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+  if ((e.key === 'Backspace' || e.key === 'Delete') && selectedKeyIdxs.size > 0) {
+    e.preventDefault();
+    deleteSelectedKeys();
+  }
+  // Ctrl+A = select all
+  if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    layoutKeys.forEach((_, i) => selectedKeyIdxs.add(i));
+    _updateDeleteSelBtn();
+    renderLayoutCanvas();
+    _syncKeyEditor();
+  }
+});
+
+// Re-render when switching to layout panel; auto-generate silently if empty
+document.querySelector('[data-panel="layout"]').addEventListener('click', () => {
+  setTimeout(() => {
+    if (layoutKeys.length === 0) generateLayoutFromMatrix(true);
+    else { renderLayoutCanvas(); updateLayoutJsonPreview(); }
+  }, 50);
+});
+
+// ─── Hook into genInfoJson merge to inject layoutKeys ───
+// We patch _rawInfoJson.layouts before genInfoJson reads it
+// genInfoJson is patched inline — layout injection happens inside genInfoJson directly
+// (patch removed to avoid hoisting-caused infinite recursion)
+
+// Update serial UI based on selected driver
+function updateSerialDriverUI() {
+  const drv = document.getElementById('serialDriver')?.value;
+  const hint = document.getElementById('serialPinHint');
+  const speedField = document.getElementById('serialSpeedField');
+  const pinField = document.getElementById('serialPinField');
+  // vendor = no pin needed; serial (PIO) = SOFT_SERIAL_PIN; bitbang = SOFT_SERIAL_PIN + speed
+  if (pinField)   pinField.style.display   = drv === 'vendor' ? 'none' : 'flex';
+  if (speedField) speedField.style.display = drv === 'bitbang' ? 'flex' : 'none';
+  if (hint) hint.textContent = 'SOFT_SERIAL_PIN';
+}
+
+// Re-query getAllUsedPins on next picker open — inputs are read live so no action needed here
+// But trigger a re-render if sideDetect or rgbType changes (affects which pins are "used")
+document.getElementById('sideDetect').addEventListener('change', () => {});
+document.getElementById('rgbType').addEventListener('change', () => {});
+
+initKeymap();
+renderMatrix();
+renderPinout();
+updateSerialDriverUI();
+_hookPinoutRefresh();
+showPreview('config');
+</script>
+</body>
+</html>
