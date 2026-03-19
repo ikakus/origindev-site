@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRAPHIC REALISM — Design System</title>
+<!-- ↓ Single source of truth for all tokens and components -->
+<link rel="stylesheet" href="gr.css">
+<style>
+
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  GRAPHIC REALISM — Design System                         ║
+   ║  A universal UI language inspired by bold graphic realism ║
+   ╚══════════════════════════════════════════════════════════╝ */
+
+/* ─── TOKENS ─────────────────────────────────────────────── */
+:root {
+  /* Color — Brand */
+  --c-primary:       #FF2D6B;
+  --c-primary-dim:   rgba(255, 45, 107, 0.12);
+  --c-accent-a:      #E8FF00;
+  --c-accent-a-dim:  rgba(232, 255, 0, 0.10);
+  --c-accent-b:      #00EEFF;
+  --c-accent-b-dim:  rgba(0, 238, 255, 0.10);
+
+  /* Color — Semantic */
+  --c-success:       #30FF80;
+  --c-success-dim:   rgba(48, 255, 128, 0.10);
+  --c-warning:       #E8FF00;
+  --c-warning-dim:   rgba(232, 255, 0, 0.10);
+  --c-danger:        #FF2D6B;
+  --c-danger-dim:    rgba(255, 45, 107, 0.12);
+  --c-info:          #00EEFF;
+  --c-info-dim:      rgba(0, 238, 255, 0.10);
+  --c-special:       #7060FF;
+  --c-special-dim:   rgba(112, 96, 255, 0.12);
+
+  /* Color — Surface */
+  --c-bg:            #080909;
+  --c-surface-1:     #0E1115;
+  --c-surface-2:     #13171C;
+  --c-surface-3:     #1A2129;
+  --c-border:        #253040;
+  --c-border-subtle: #1A2129;
+
+  /* Color — Text */
+  --c-text-primary:  #E4EDF2;
+  --c-text-secondary:#B8C8D4;
+  --c-text-muted:    #3A5570;
+  --c-text-disabled: #1E2D3C;
+
+  /* Typography */
+  --font-display:    'Barlow Condensed', sans-serif;
+  --font-mono:       'Share Tech Mono', monospace;
+  --font-body:       'Barlow', sans-serif;
+
+  /* Type scale */
+  --text-xs:   9px;
+  --text-sm:   11px;
+  --text-base: 14px;
+  --text-md:   16px;
+  --text-lg:   20px;
+  --text-xl:   28px;
+  --text-2xl:  40px;
+  --text-3xl:  60px;
+  --text-4xl:  88px;
+
+  /* Spacing */
+  --sp-1: 4px;   --sp-2: 8px;   --sp-3: 12px;  --sp-4: 16px;
+  --sp-5: 24px;  --sp-6: 32px;  --sp-7: 48px;  --sp-8: 64px;
+  --sp-9: 96px;
+
+  /* Border radius */
+  --radius-none: 0px;
+  --radius-sm:   2px;
+  --radius-md:   4px;
+
+  /* Border */
+  --border-width: 1px;
+  --border:       1px solid var(--c-border);
+  --border-subtle:1px solid var(--c-border-subtle);
+
+  /* Shadow */
+  --shadow-glow-primary: 0 0 20px rgba(255,45,107,0.2);
+  --shadow-glow-accent:  0 0 16px rgba(0,238,255,0.18);
+  --shadow-panel:        0 4px 24px rgba(0,0,0,0.5);
+
+  /* Motion */
+  --ease-out:    cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --dur-fast:    100ms;
+  --dur-base:    180ms;
+  --dur-slow:    320ms;
+
+  /* Z-index */
+  --z-base:    0;
+  --z-raised:  10;
+  --z-overlay: 100;
+  --z-modal:   1000;
+  --z-toast:   2000;
+}
+
+/* ─── RESET ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  background: var(--c-bg);
+  color: var(--c-text-primary);
+  font-family: var(--font-body);
+  font-weight: 300;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* noise + scanline overlays */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E") 0 0 / 200px;
+  pointer-events: none; z-index: 9999; opacity: .4;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 2px; }
+
+/* ─── LAYOUT ─────────────────────────────────────────────── */
+.page-wrap { max-width: 1200px; margin: 0 auto; padding: 0 var(--sp-6); }
+section.ds-section { padding: var(--sp-8) 0; border-bottom: var(--border-subtle); }
+section.ds-section:last-child { border-bottom: none; }
+
+/* ─── DS NAV (sticky sidebar feel on wide, top bar on narrow) ── */
+.ds-nav {
+  position: sticky; top: 0; z-index: var(--z-overlay);
+  background: var(--c-surface-1);
+  border-bottom: var(--border);
+  display: flex; align-items: center;
+  height: 48px;
+  overflow-x: auto;
+}
+.ds-nav::-webkit-scrollbar { height: 0; }
+.ds-nav-brand {
+  font-family: var(--font-display);
+  font-weight: 900; font-size: 18px;
+  text-transform: uppercase; letter-spacing: -0.01em;
+  color: var(--c-text-primary);
+  padding: 0 24px;
+  border-right: var(--border);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ds-nav-brand em { color: var(--c-primary); font-style: normal; }
+.ds-nav-links {
+  display: flex; flex: 1;
+}
+.ds-nav-link {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs); letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--c-text-muted);
+  padding: 0 18px; height: 48px;
+  display: flex; align-items: center;
+  text-decoration: none; white-space: nowrap;
+  border-right: var(--border-subtle);
+  transition: color var(--dur-base) var(--ease-out);
+}
+.ds-nav-link:hover { color: var(--c-text-primary); }
+.ds-nav-badge {
+  margin-left: auto; margin-right: 20px; flex-shrink: 0;
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.15em; color: var(--c-text-muted);
+  white-space: nowrap;
+}
+
+/* ─── SECTION HEADER ─────────────────────────────────────── */
+.section-head {
+  display: flex; align-items: baseline; gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+}
+.section-head h2 {
+  font-family: var(--font-display);
+  font-weight: 900; font-size: var(--text-2xl);
+  text-transform: uppercase; letter-spacing: -0.01em;
+  color: var(--c-text-primary);
+}
+.section-head .section-tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs); letter-spacing: 0.25em;
+  color: var(--c-text-muted); text-transform: uppercase;
+}
+
+.ds-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs); letter-spacing: 0.28em;
+  text-transform: uppercase; color: var(--c-text-muted);
+  margin-bottom: var(--sp-4);
+  display: flex; align-items: center; gap: var(--sp-3);
+}
+.ds-label::after { content: ''; flex: 1; height: 1px; background: var(--c-border-subtle); }
+
+/* ─── HERO ───────────────────────────────────────────────── */
+.ds-hero {
+  padding: var(--sp-9) 0 var(--sp-8);
+  position: relative; overflow: hidden;
+}
+.ds-hero-grid-bg {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--c-primary-dim) 1px, transparent 1px),
+    linear-gradient(90deg, var(--c-primary-dim) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 100% at 20% 50%, black 0%, transparent 70%);
+}
+.ds-hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs); letter-spacing: 0.35em;
+  color: var(--c-primary); text-transform: uppercase;
+  margin-bottom: var(--sp-4);
+  display: flex; align-items: center; gap: var(--sp-3);
+}
+.ds-hero-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--c-primary); display: block; }
+.ds-hero-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(56px, 9vw, 112px);
+  line-height: 0.88; letter-spacing: -0.02em;
+  text-transform: uppercase; color: var(--c-text-primary);
+  margin-bottom: var(--sp-6); position: relative;
+}
+.ds-hero-title .stroke {
+  color: transparent;
+  -webkit-text-stroke: 1px var(--c-border);
+}
+.ds-hero-title .accent { color: var(--c-primary); }
+.ds-hero-desc {
+  font-size: var(--text-md); font-weight: 300;
+  color: var(--c-text-secondary);
+  max-width: 52ch; line-height: 1.7;
+  margin-bottom: var(--sp-6);
+}
+.ds-hero-stats {
+  display: flex; gap: var(--sp-6);
+}
+.ds-hero-stat-val {
+  font-family: var(--font-display);
+  font-weight: 900; font-size: var(--text-2xl); line-height: 1;
+  color: var(--c-text-primary);
+}
+.ds-hero-stat-key {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs); letter-spacing: 0.2em;
+  color: var(--c-text-muted); text-transform: uppercase;
+  margin-top: 4px;
+}
+.stat-divider { width: 1px; background: var(--c-border); align-self: stretch; }
+
+/* ─── COLOR TOKENS ───────────────────────────────────────── */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--sp-2);
+}
+.color-swatch {
+  border: var(--border);
+  overflow: hidden;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.color-swatch:hover { transform: translateY(-3px); }
+.swatch-block {
+  height: 80px; position: relative;
+}
+.swatch-block::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.06) 0%, transparent 55%);
+}
+.swatch-meta {
+  padding: 10px 10px 8px;
+  background: var(--c-surface-2);
+  border-top: var(--border-subtle);
+}
+.swatch-name {
+  font-family: var(--font-display);
+  font-weight: 700; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--c-text-primary); display: block;
+}
+.swatch-hex {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--c-text-muted); letter-spacing: 0.05em; margin-top: 2px;
+}
+.swatch-var {
+  font-family: var(--font-mono); font-size: 8px;
+  color: var(--c-text-muted); opacity: .55;
+  margin-top: 2px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis;
+}
+.color-group-title {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.25em; color: var(--c-text-muted);
+  text-transform: uppercase; margin: var(--sp-5) 0 var(--sp-3);
+}
+.color-group-title:first-child { margin-top: 0; }
+
+/* ─── TYPOGRAPHY ─────────────────────────────────────────── */
+.type-specimens { display: flex; flex-direction: column; gap: var(--sp-3); }
+.type-row {
+  padding: var(--sp-5) var(--sp-6);
+  background: var(--c-surface-1); border: var(--border);
+  display: flex; align-items: baseline; gap: var(--sp-6);
+  position: relative;
+}
+.type-row::before {
+  content: attr(data-spec);
+  position: absolute; top: var(--sp-3); right: var(--sp-4);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.15em; color: var(--c-text-muted);
+  text-transform: uppercase; opacity: .5;
+}
+.type-sample-text { flex: 1; }
+.type-meta { flex-shrink: 0; text-align: right; }
+.type-meta-name {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.15em; color: var(--c-primary);
+  text-transform: uppercase; display: block;
+}
+.type-meta-detail {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--c-text-muted); margin-top: 3px;
+}
+
+/* Type scale classes — exported for use */
+.t-display-xl   { font-family:var(--font-display); font-weight:900; font-size:var(--text-4xl); line-height:0.88; letter-spacing:-0.02em; text-transform:uppercase; }
+.t-display-lg   { font-family:var(--font-display); font-weight:900; font-size:var(--text-3xl); line-height:0.9;  letter-spacing:-0.02em; text-transform:uppercase; }
+.t-display-md   { font-family:var(--font-display); font-weight:700; font-size:var(--text-2xl); line-height:1;    letter-spacing:-0.01em; text-transform:uppercase; }
+.t-heading      { font-family:var(--font-display); font-weight:700; font-size:var(--text-xl);  line-height:1.1;  letter-spacing:0.02em;  text-transform:uppercase; }
+.t-subheading   { font-family:var(--font-display); font-weight:600; font-size:var(--text-lg);  line-height:1.2;  letter-spacing:0.04em;  text-transform:uppercase; }
+.t-label        { font-family:var(--font-mono);    font-size:var(--text-xs);  letter-spacing:0.3em;  text-transform:uppercase; color:var(--c-primary); }
+.t-body-lg      { font-family:var(--font-body);    font-weight:300; font-size:var(--text-md);  line-height:1.7; }
+.t-body         { font-family:var(--font-body);    font-weight:300; font-size:var(--text-base); line-height:1.65; }
+.t-body-sm      { font-family:var(--font-body);    font-weight:300; font-size:12px; line-height:1.55; }
+.t-mono-lg      { font-family:var(--font-mono);    font-size:var(--text-md);  letter-spacing:0.04em; }
+.t-mono         { font-family:var(--font-mono);    font-size:var(--text-sm);  letter-spacing:0.05em; }
+.t-mono-sm      { font-family:var(--font-mono);    font-size:var(--text-xs);  letter-spacing:0.12em; }
+
+/* font pairing card */
+.font-card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); }
+.font-card {
+  background: var(--c-surface-1); border: var(--border);
+  padding: var(--sp-5);
+}
+.font-card-role {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--c-primary); margin-bottom: var(--sp-3);
+}
+.font-card-name {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--c-text-muted); margin-bottom: var(--sp-4);
+  letter-spacing: 0.1em;
+}
+.font-card-use {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--c-text-muted); opacity: .6;
+  margin-top: var(--sp-3); letter-spacing: 0.08em;
+}
+.font-specimen-display { font-family: var(--font-display); font-weight: 900; font-size: 44px; line-height: 1; text-transform: uppercase; color: var(--c-text-primary); }
+.font-specimen-mono    { font-family: var(--font-mono); font-size: 20px; color: var(--c-success); letter-spacing: 0.04em; }
+.font-specimen-body    { font-family: var(--font-body); font-weight: 300; font-size: 18px; line-height: 1.4; color: var(--c-text-secondary); }
+
+/* ─── SPACING ────────────────────────────────────────────── */
+.spacing-row {
+  display: flex; align-items: flex-end; gap: var(--sp-5); flex-wrap: wrap;
+  padding: var(--sp-5); background: var(--c-surface-1); border: var(--border);
+}
+.sp-item { display: flex; flex-direction: column; align-items: center; gap: var(--sp-2); }
+.sp-bar  { background: var(--c-primary); opacity: .55; width: 24px; }
+.sp-key  { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--c-text-muted); letter-spacing: 0.1em; text-align: center; }
+
+/* ─── GRID ───────────────────────────────────────────────── */
+.grid-demo {
+  display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px;
+  padding: var(--sp-4); background: var(--c-surface-1); border: var(--border);
+}
+.grid-col {
+  height: 36px; background: var(--c-primary-dim); border: 1px solid rgba(255,45,107,.15);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 8px; color: rgba(255,45,107,.4); letter-spacing: 0.1em;
+}
+
+/* ─── COMPONENTS ─────────────────────────────────────────── */
+
+/* — Buttons — */
+.btn-showcase { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: center; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 11px 22px; cursor: pointer; border: none;
+  text-decoration: none; transition: all var(--dur-base) var(--ease-out);
+  position: relative; white-space: nowrap;
+}
+/* chamfer clip via clip-path */
+.btn-chamfer {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+.btn-primary {
+  background: var(--c-primary); color: var(--c-bg);
+}
+.btn-primary:hover { background: #ff4d84; box-shadow: var(--shadow-glow-primary); }
+.btn-primary:active { background: #e0174e; }
+
+.btn-secondary {
+  background: transparent; color: var(--c-text-primary);
+  border: 1px solid var(--c-border);
+}
+.btn-secondary:hover { border-color: var(--c-primary); color: var(--c-primary); }
+
+.btn-ghost-cyan {
+  background: transparent; color: var(--c-accent-b);
+  border: 1px solid var(--c-accent-b);
+}
+.btn-ghost-cyan:hover { background: var(--c-accent-b-dim); box-shadow: var(--shadow-glow-accent); }
+
+.btn-ghost-yellow {
+  background: transparent; color: var(--c-accent-a);
+  border: 1px solid var(--c-accent-a);
+}
+.btn-ghost-yellow:hover { background: var(--c-accent-a-dim); }
+
+.btn-danger {
+  background: var(--c-danger-dim); color: var(--c-primary);
+  border: 1px solid var(--c-primary);
+}
+.btn-danger:hover { background: rgba(255,45,107,.2); }
+
+.btn-sm { font-size: 10px; padding: 7px 16px; letter-spacing: 0.18em; }
+.btn-lg { font-size: 14px; padding: 14px 28px; }
+
+.btn-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0;
+  font-family: var(--font-mono); font-size: 14px;
+}
+
+/* — Badges — */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 3px 9px; border: 1px solid;
+}
+.badge-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+.badge-sm  { font-size: 8px; padding: 2px 7px; letter-spacing: 0.15em; }
+
+.badge-primary  { color: var(--c-primary);  border-color: var(--c-primary);  background: var(--c-primary-dim); }
+.badge-yellow   { color: var(--c-accent-a); border-color: var(--c-accent-a); background: var(--c-accent-a-dim); }
+.badge-cyan     { color: var(--c-accent-b); border-color: var(--c-accent-b); background: var(--c-accent-b-dim); }
+.badge-success  { color: var(--c-success);  border-color: var(--c-success);  background: var(--c-success-dim); }
+.badge-special  { color: var(--c-special);  border-color: var(--c-special);  background: var(--c-special-dim); }
+.badge-muted    { color: var(--c-text-muted);border-color:var(--c-border);   background: var(--c-surface-2); }
+
+.badges-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+/* — Tags / chips — */
+.tag {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-size: 8px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 2px 8px; border: 1px solid var(--c-border);
+  color: var(--c-text-muted); background: var(--c-surface-2);
+  cursor: pointer; transition: all var(--dur-base) var(--ease-out);
+}
+.tag:hover, .tag.active { border-color: var(--c-primary); color: var(--c-primary); background: var(--c-primary-dim); }
+
+/* — Inputs — */
+.input-group { display: flex; flex-direction: column; gap: var(--sp-3); }
+.field-wrap { display: flex; flex-direction: column; gap: 5px; }
+.field-label {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--c-text-muted);
+}
+.field {
+  background: var(--c-surface-3); border: 1px solid var(--c-border);
+  border-left: 2px solid var(--c-primary);
+  color: var(--c-text-primary); font-family: var(--font-mono);
+  font-size: 12px; letter-spacing: 0.05em;
+  padding: 10px 14px; outline: none; width: 100%;
+  transition: border-color var(--dur-base) var(--ease-out),
+              background   var(--dur-base) var(--ease-out);
+}
+.field:focus { border-color: var(--c-primary); background: var(--c-surface-2); }
+.field::placeholder { color: var(--c-text-muted); opacity: .5; }
+.field-error { border-left-color: var(--c-danger); }
+.field-error:focus { border-color: var(--c-danger); }
+.field-success-accent { border-left-color: var(--c-success); }
+.field-hint {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.1em; color: var(--c-text-muted);
+}
+.field-error-msg {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.1em; color: var(--c-danger);
+}
+
+/* select */
+.field-select {
+  appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%233A5570'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  cursor: pointer;
+}
+
+/* textarea */
+.field-textarea { resize: vertical; min-height: 80px; }
+
+/* toggle */
+.toggle-wrap { display: flex; align-items: center; gap: var(--sp-3); cursor: pointer; }
+.toggle {
+  width: 40px; height: 20px; background: var(--c-surface-3);
+  border: 1px solid var(--c-border); position: relative;
+  transition: background var(--dur-base) var(--ease-out);
+  flex-shrink: 0; cursor: pointer;
+}
+.toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; background: var(--c-text-muted);
+  transition: transform var(--dur-base) var(--ease-out), background var(--dur-base);
+}
+.toggle.on { background: var(--c-primary-dim); border-color: var(--c-primary); }
+.toggle.on::after { transform: translateX(20px); background: var(--c-primary); }
+.toggle-label { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.15em; text-transform: uppercase; color: var(--c-text-secondary); }
+
+/* checkbox */
+.check-wrap { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.checkbox {
+  width: 16px; height: 16px; flex-shrink: 0;
+  background: var(--c-surface-3); border: 1px solid var(--c-border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all var(--dur-base);
+}
+.checkbox.checked { background: var(--c-primary-dim); border-color: var(--c-primary); }
+.checkbox.checked::after { content: '✓'; font-family: var(--font-mono); font-size: 10px; color: var(--c-primary); line-height: 1; }
+.check-label { font-family: var(--font-body); font-size: var(--text-base); font-weight: 300; color: var(--c-text-secondary); }
+
+/* — Alerts / Notifications — */
+.alert {
+  display: flex; gap: var(--sp-3);
+  padding: var(--sp-4) var(--sp-4);
+  border-left: 3px solid; background: var(--c-surface-2);
+  margin-bottom: var(--sp-2);
+}
+.alert-icon-col { flex-shrink: 0; padding-top: 1px; }
+.alert-icon {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.2em; text-transform: uppercase; padding: 2px 6px;
+  border: 1px solid; display: inline-block;
+}
+.alert-body-col { flex: 1; }
+.alert-title {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 13px; letter-spacing: 0.15em; text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.alert-text {
+  font-family: var(--font-body); font-size: 12px;
+  font-weight: 300; line-height: 1.5; color: var(--c-text-secondary);
+}
+.alert-dismiss {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--c-text-muted); cursor: pointer; flex-shrink: 0;
+  padding: 2px 4px; transition: color var(--dur-base);
+  align-self: flex-start;
+}
+.alert-dismiss:hover { color: var(--c-text-primary); }
+
+.alert-critical { border-color: var(--c-primary); }
+.alert-critical .alert-icon { color: var(--c-primary); border-color: var(--c-primary); }
+.alert-critical .alert-title { color: var(--c-primary); }
+.alert-warning  { border-color: var(--c-accent-a); }
+.alert-warning  .alert-icon { color: var(--c-accent-a); border-color: var(--c-accent-a); }
+.alert-warning  .alert-title { color: var(--c-accent-a); }
+.alert-info     { border-color: var(--c-accent-b); }
+.alert-info     .alert-icon { color: var(--c-accent-b); border-color: var(--c-accent-b); }
+.alert-info     .alert-title { color: var(--c-accent-b); }
+.alert-success  { border-color: var(--c-success); }
+.alert-success  .alert-icon { color: var(--c-success); border-color: var(--c-success); }
+.alert-success  .alert-title { color: var(--c-success); }
+
+/* — Card variants — */
+.card {
+  background: var(--c-surface-2); border: var(--border);
+  padding: var(--sp-5); position: relative; overflow: hidden;
+}
+.card-accent-top::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+}
+.card-accent-top.accent-primary::before  { background: var(--c-primary); }
+.card-accent-top.accent-yellow::before   { background: var(--c-accent-a); }
+.card-accent-top.accent-cyan::before     { background: var(--c-accent-b); }
+.card-accent-top.accent-success::before  { background: var(--c-success); }
+.card-accent-top.accent-special::before  { background: var(--c-special); }
+
+.card-chamfer {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+.card-hover { cursor: pointer; transition: background var(--dur-base) var(--ease-out), border-color var(--dur-base); }
+.card-hover:hover { background: var(--c-surface-3); border-color: var(--c-primary); }
+
+.card-title {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: var(--text-lg); text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--c-text-primary);
+  margin-bottom: var(--sp-2);
+}
+.card-meta {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.18em; color: var(--c-text-muted);
+  text-transform: uppercase; margin-bottom: var(--sp-3);
+}
+.card-body {
+  font-family: var(--font-body); font-weight: 300;
+  font-size: var(--text-base); line-height: 1.65;
+  color: var(--c-text-secondary);
+}
+
+.card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-3); }
+.card-grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+/* stat card */
+.stat-card {
+  background: var(--c-surface-2); border: var(--border);
+  padding: var(--sp-4) var(--sp-5);
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.stat-key {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--c-text-muted); margin-bottom: 8px;
+}
+.stat-value {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: var(--text-2xl); line-height: 1;
+  color: var(--c-text-primary);
+}
+.stat-unit {
+  font-family: var(--font-mono); font-size: var(--text-sm);
+  color: var(--c-text-muted); margin-left: 3px;
+}
+.stat-delta {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.1em; margin-top: var(--sp-2);
+}
+.delta-pos { color: var(--c-success); }
+.delta-neg { color: var(--c-primary); }
+
+/* — Progress / Meters — */
+.progress-stack { display: flex; flex-direction: column; gap: var(--sp-4); }
+.progress-item  {}
+.progress-head  { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.progress-name  { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.18em; text-transform: uppercase; color: var(--c-text-secondary); }
+.progress-pct   { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--c-text-muted); }
+.progress-track { height: 2px; background: var(--c-border); position: relative; overflow: hidden; }
+.progress-track-thick { height: 4px; }
+.progress-fill  { position: absolute; top: 0; left: 0; bottom: 0; transition: width 1s var(--ease-out); }
+
+/* — Table — */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table thead tr {
+  border-bottom: 1px solid var(--c-border);
+}
+.data-table thead th {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--c-text-muted); padding: 10px 12px;
+  text-align: left; font-weight: 400;
+}
+.data-table tbody tr {
+  border-bottom: 1px solid var(--c-border-subtle);
+  transition: background var(--dur-fast);
+}
+.data-table tbody tr:hover { background: var(--c-surface-2); }
+.data-table tbody td {
+  padding: 10px 12px;
+  font-family: var(--font-body); font-size: var(--text-base);
+  font-weight: 300; color: var(--c-text-secondary);
+}
+.data-table .td-label {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--c-text-primary);
+}
+.data-table .td-mono {
+  font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.05em; color: var(--c-text-muted);
+}
+
+/* — Tabs — */
+.tab-bar {
+  display: flex; border-bottom: var(--border);
+  background: var(--c-surface-1);
+}
+.tab-item {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--c-text-muted); padding: 0 20px; height: 40px;
+  display: flex; align-items: center; cursor: pointer;
+  border-right: var(--border-subtle); position: relative;
+  transition: color var(--dur-base);
+}
+.tab-item:hover { color: var(--c-text-secondary); }
+.tab-item.active { color: var(--c-text-primary); }
+.tab-item.active::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px; background: var(--c-primary);
+}
+
+/* — Tooltip-style callout — */
+.callout {
+  display: flex; gap: var(--sp-3); padding: var(--sp-4);
+  background: var(--c-surface-2); border: var(--border);
+  border-left: 3px solid var(--c-primary);
+}
+.callout-icon { font-family: var(--font-mono); font-size: 16px; flex-shrink: 0; }
+.callout-text { font-family: var(--font-body); font-weight: 300; font-size: var(--text-base); color: var(--c-text-secondary); line-height: 1.6; }
+.callout-text strong { font-weight: 500; color: var(--c-text-primary); }
+
+/* — Navigation Patterns — */
+.nav-demo {
+  background: var(--c-surface-1); border: var(--border);
+  display: flex; align-items: center; height: 48px; padding: 0 20px; gap: 0;
+}
+.nav-demo-brand {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: 18px; text-transform: uppercase;
+  color: var(--c-text-primary); margin-right: 24px; letter-spacing: -0.01em;
+}
+.nav-demo-item {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--c-text-muted); padding: 0 16px; height: 48px;
+  display: flex; align-items: center; border-right: var(--border-subtle);
+  cursor: pointer; transition: color var(--dur-base);
+  position: relative;
+}
+.nav-demo-item:hover { color: var(--c-text-secondary); }
+.nav-demo-item.active { color: var(--c-text-primary); }
+.nav-demo-item.active::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px; background: var(--c-primary);
+}
+.nav-demo-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+
+/* breadcrumb */
+.breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.15em; text-transform: uppercase;
+}
+.breadcrumb-item { color: var(--c-text-muted); }
+.breadcrumb-item.current { color: var(--c-text-secondary); }
+.breadcrumb-sep { color: var(--c-border); }
+
+/* — Motion reference — */
+.motion-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-3); }
+.motion-card {
+  background: var(--c-surface-1); border: var(--border);
+  padding: var(--sp-5); display: flex; flex-direction: column;
+  align-items: center; gap: var(--sp-4); text-align: center;
+}
+.motion-demo-el {
+  width: 48px; height: 48px;
+  background: var(--c-surface-3); border: var(--border);
+}
+.motion-name { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.2em; text-transform: uppercase; color: var(--c-text-muted); }
+.motion-desc { font-family: var(--font-body); font-size: 11px; font-weight: 300; color: var(--c-text-muted); line-height: 1.4; }
+
+.anim-pulse   { animation: anim-pulse   2.5s ease infinite; }
+.anim-flicker { animation: anim-flicker 4s linear infinite; }
+.anim-glow    { animation: anim-glow    3s ease infinite; }
+.anim-blink   { animation: anim-blink   1.6s step-end infinite; }
+
+@keyframes anim-pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,45,107,0); border-color: var(--c-border); }
+  50%      { box-shadow: 0 0 0 6px rgba(255,45,107,.15); border-color: var(--c-primary); }
+}
+@keyframes anim-flicker {
+  0%,96%,100%        { opacity: 1; }
+  97%                { opacity: .3; }
+  98%                { opacity: 1; }
+  99%                { opacity: .7; }
+}
+@keyframes anim-glow {
+  0%,100% { border-color: var(--c-border); box-shadow: none; }
+  50%     { border-color: var(--c-accent-b); box-shadow: 0 0 16px rgba(0,238,255,.2); }
+}
+@keyframes anim-blink {
+  0%,49% { border-color: var(--c-accent-a); }
+  50%,100%{ border-color: var(--c-border); }
+}
+
+/* — Dividers — */
+.rule-sharp  { border: none; border-top: 1px solid var(--c-border); }
+.rule-fade   { border: none; height: 1px; background: linear-gradient(90deg, var(--c-primary) 0%, transparent 50%); }
+.rule-double { border: none; height: 3px; background: linear-gradient(90deg, var(--c-primary), var(--c-accent-b)); opacity: .4; }
+
+/* ─── LAYOUT UTILITIES ───────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--sp-3); }
+.stack  { display: flex; flex-direction: column; gap: var(--sp-3); }
+.row    { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; }
+.mt-4   { margin-top: var(--sp-4); }
+.mt-5   { margin-top: var(--sp-5); }
+.mt-6   { margin-top: var(--sp-6); }
+
+/* ─── CODE BLOCK ─────────────────────────────────────────── */
+.code-block {
+  background: var(--c-surface-2); border: var(--border);
+  border-left: 3px solid var(--c-accent-b);
+  padding: var(--sp-4) var(--sp-5);
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--c-accent-b); letter-spacing: 0.04em;
+  line-height: 1.8; overflow-x: auto;
+  white-space: pre;
+}
+.code-block .tok-key    { color: var(--c-primary); }
+.code-block .tok-val    { color: var(--c-accent-a); }
+.code-block .tok-comment{ color: var(--c-text-muted); }
+.code-block .tok-var    { color: var(--c-success); }
+
+/* ─── FOOTER ─────────────────────────────────────────────── */
+.ds-footer {
+  padding: var(--sp-7) 0;
+  display: flex; justify-content: space-between; align-items: center;
+  border-top: var(--border);
+}
+.footer-brand {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: 28px; text-transform: uppercase;
+  letter-spacing: -0.01em; color: var(--c-border);
+}
+.footer-meta {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  letter-spacing: 0.15em; color: var(--c-text-muted);
+  text-align: right; line-height: 2.2; text-transform: uppercase;
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .card-grid, .font-card-grid, .motion-grid { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+  .ds-hero-title { font-size: 56px; }
+}
+@media (max-width: 600px) {
+  .card-grid, .font-card-grid, .motion-grid, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .page-wrap { padding: 0 var(--sp-4); }
+  .ds-hero-title { font-size: 42px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── NAV ──────────────────────────────────────────────── -->
+<nav class="ds-nav">
+  <div class="ds-nav-brand">GR<em>/</em>DS</div>
+  <div class="ds-nav-links">
+    <a href="#tokens"     class="ds-nav-link">Tokens</a>
+    <a href="#typography" class="ds-nav-link">Type</a>
+    <a href="#spacing"    class="ds-nav-link">Spacing</a>
+    <a href="#components" class="ds-nav-link">Components</a>
+    <a href="#patterns"   class="ds-nav-link">Patterns</a>
+    <a href="#motion"     class="ds-nav-link">Motion</a>
+  </div>
+  <div class="ds-nav-badge">v 1.0.0 · CSS Variables</div>
+</nav>
+
+<div class="page-wrap">
+
+<!-- ─── HERO ─────────────────────────────────────────────── -->
+<div class="ds-hero">
+  <div class="ds-hero-grid-bg"></div>
+  <div class="ds-hero-eyebrow">Design System · Graphic Realism</div>
+  <h1 class="ds-hero-title">
+    <span class="accent">GRAPHIC</span><br>
+    REALISM<br>
+    <span class="stroke">DESIGN SYS</span>
+  </h1>
+  <p class="ds-hero-desc">A bold, utilitarian design language built on hyper-saturated color, stark contrast, chamfered geometry, and monospaced information density. Apply to any digital product — dashboard, marketing site, app, or documentation.</p>
+  <div class="ds-hero-stats">
+    <div>
+      <div class="ds-hero-stat-val">14</div>
+      <div class="ds-hero-stat-key">Color Tokens</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div>
+      <div class="ds-hero-stat-val">3</div>
+      <div class="ds-hero-stat-key">Typefaces</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div>
+      <div class="ds-hero-stat-val">8</div>
+      <div class="ds-hero-stat-key">Spacing Steps</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div>
+      <div class="ds-hero-stat-val">30+</div>
+      <div class="ds-hero-stat-key">Components</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── TOKENS ───────────────────────────────────────────── -->
+<section class="ds-section" id="tokens">
+  <div class="section-head">
+    <h2>Color Tokens</h2>
+    <span class="section-tag">// 14 semantic values</span>
+  </div>
+
+  <div class="color-group-title">Brand · Primary & Accent</div>
+  <div class="color-grid">
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#FF2D6B;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Primary</span><div class="swatch-hex">#FF2D6B</div><div class="swatch-var">--c-primary</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:rgba(255,45,107,0.12);"></div>
+      <div class="swatch-meta"><span class="swatch-name">Primary Dim</span><div class="swatch-hex">12% alpha</div><div class="swatch-var">--c-primary-dim</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#E8FF00;"></div>
+      <div class="swatch-meta"><span class="swatch-name" style="color:#111;">Accent A</span><div class="swatch-hex">#E8FF00</div><div class="swatch-var">--c-accent-a</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#00EEFF;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Accent B</span><div class="swatch-hex">#00EEFF</div><div class="swatch-var">--c-accent-b</div></div>
+    </div>
+  </div>
+
+  <div class="color-group-title">Semantic · Status</div>
+  <div class="color-grid">
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#30FF80;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Success</span><div class="swatch-hex">#30FF80</div><div class="swatch-var">--c-success</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#E8FF00;"></div>
+      <div class="swatch-meta"><span class="swatch-name" style="color:#111;">Warning</span><div class="swatch-hex">#E8FF00</div><div class="swatch-var">--c-warning</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#FF2D6B;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Danger</span><div class="swatch-hex">#FF2D6B</div><div class="swatch-var">--c-danger</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#00EEFF;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Info</span><div class="swatch-hex">#00EEFF</div><div class="swatch-var">--c-info</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#7060FF;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Special</span><div class="swatch-hex">#7060FF</div><div class="swatch-var">--c-special</div></div>
+    </div>
+  </div>
+
+  <div class="color-group-title">Surface · Neutral Stack</div>
+  <div class="color-grid">
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#080909;"></div>
+      <div class="swatch-meta"><span class="swatch-name">BG</span><div class="swatch-hex">#080909</div><div class="swatch-var">--c-bg</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#0E1115;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Surface 1</span><div class="swatch-hex">#0E1115</div><div class="swatch-var">--c-surface-1</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#13171C;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Surface 2</span><div class="swatch-hex">#13171C</div><div class="swatch-var">--c-surface-2</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#1A2129;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Surface 3</span><div class="swatch-hex">#1A2129</div><div class="swatch-var">--c-surface-3</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#253040;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Border</span><div class="swatch-hex">#253040</div><div class="swatch-var">--c-border</div></div>
+    </div>
+  </div>
+
+  <div class="color-group-title">Text Hierarchy</div>
+  <div class="color-grid">
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#E4EDF2;"></div>
+      <div class="swatch-meta"><span class="swatch-name" style="color:#111;">Text Primary</span><div class="swatch-hex">#E4EDF2</div><div class="swatch-var">--c-text-primary</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#B8C8D4;"></div>
+      <div class="swatch-meta"><span class="swatch-name" style="color:#111;">Text Secondary</span><div class="swatch-hex">#B8C8D4</div><div class="swatch-var">--c-text-secondary</div></div>
+    </div>
+    <div class="color-swatch">
+      <div class="swatch-block" style="background:#3A5570;"></div>
+      <div class="swatch-meta"><span class="swatch-name">Text Muted</span><div class="swatch-hex">#3A5570</div><div class="swatch-var">--c-text-muted</div></div>
+    </div>
+  </div>
+
+  <div class="mt-6">
+    <div class="ds-label">CSS Token Reference</div>
+    <div class="code-block"><span class="tok-comment">/* Graphic Realism DS — paste into :root */</span>
+<span class="tok-key">--c-primary</span>:       <span class="tok-val">#FF2D6B</span>;    <span class="tok-comment">/* Hot pink — CTAs, focus, critical */</span>
+<span class="tok-key">--c-accent-a</span>:      <span class="tok-val">#E8FF00</span>;    <span class="tok-comment">/* Acid yellow — warning, highlight */</span>
+<span class="tok-key">--c-accent-b</span>:      <span class="tok-val">#00EEFF</span>;    <span class="tok-comment">/* Neon cyan — info, secondary */</span>
+<span class="tok-key">--c-success</span>:       <span class="tok-val">#30FF80</span>;    <span class="tok-comment">/* Data green — ok, live, online */</span>
+<span class="tok-key">--c-special</span>:       <span class="tok-val">#7060FF</span>;    <span class="tok-comment">/* Violet — special, premium */</span>
+<span class="tok-key">--c-bg</span>:            <span class="tok-val">#080909</span>;
+<span class="tok-key">--c-surface-1</span>:     <span class="tok-val">#0E1115</span>;
+<span class="tok-key">--c-surface-2</span>:     <span class="tok-val">#13171C</span>;
+<span class="tok-key">--c-border</span>:        <span class="tok-val">#253040</span>;
+<span class="tok-key">--c-text-primary</span>:  <span class="tok-val">#E4EDF2</span>;
+<span class="tok-key">--c-text-muted</span>:    <span class="tok-val">#3A5570</span>;
+<span class="tok-key">--font-display</span>:    <span class="tok-val">'Barlow Condensed'</span>, sans-serif;
+<span class="tok-key">--font-mono</span>:       <span class="tok-val">'Share Tech Mono'</span>, monospace;
+<span class="tok-key">--font-body</span>:       <span class="tok-val">'Barlow'</span>, sans-serif;</div>
+  </div>
+</section>
+
+<!-- ─── TYPOGRAPHY ───────────────────────────────────────── -->
+<section class="ds-section" id="typography">
+  <div class="section-head">
+    <h2>Typography</h2>
+    <span class="section-tag">// 3 faces · 10 scale steps</span>
+  </div>
+
+  <div class="ds-label">Typeface Specimens</div>
+  <div class="font-card-grid mt-4">
+    <div class="font-card">
+      <div class="font-card-role">Display</div>
+      <div class="font-card-name">Barlow Condensed 900</div>
+      <div class="font-specimen-display">ABCDE<br>12345</div>
+      <div class="font-card-use">Headlines · Hero · Labels · HUD</div>
+    </div>
+    <div class="font-card">
+      <div class="font-card-role">Interface / Mono</div>
+      <div class="font-card-name">Share Tech Mono</div>
+      <div class="font-specimen-mono">SYS_INIT 0xA4<br>DATA::STREAM</div>
+      <div class="font-card-use">Code · Data · Tags · System UI · Timestamps</div>
+    </div>
+    <div class="font-card">
+      <div class="font-card-role">Body</div>
+      <div class="font-card-name">Barlow 300</div>
+      <div class="font-specimen-body">Clean information that reads at density.</div>
+      <div class="font-card-use">Paragraphs · Descriptions · Captions · Prose</div>
+    </div>
+  </div>
+
+  <div class="ds-label mt-6">Type Scale</div>
+  <div class="type-specimens mt-4">
+    <div class="type-row" data-spec="Display XL · 88px · 900 · −0.02em">
+      <div class="type-sample-text t-display-xl" style="font-size:clamp(40px,5vw,88px);">HEADLINE</div>
+      <div class="type-meta"><span class="type-meta-name">Display XL</span><div class="type-meta-detail">88px / 900 / −0.02em<br>.t-display-xl</div></div>
+    </div>
+    <div class="type-row" data-spec="Display LG · 60px · 900">
+      <div class="type-sample-text t-display-lg" style="font-size:clamp(32px,4vw,60px);">SECTION TITLE</div>
+      <div class="type-meta"><span class="type-meta-name">Display LG</span><div class="type-meta-detail">60px / 900<br>.t-display-lg</div></div>
+    </div>
+    <div class="type-row" data-spec="Display MD · 40px · 700">
+      <div class="type-sample-text t-display-md">PAGE HEADING</div>
+      <div class="type-meta"><span class="type-meta-name">Display MD</span><div class="type-meta-detail">40px / 700<br>.t-display-md</div></div>
+    </div>
+    <div class="type-row" data-spec="Heading · 28px · 700">
+      <div class="type-sample-text t-heading">Card Heading Text</div>
+      <div class="type-meta"><span class="type-meta-name">Heading</span><div class="type-meta-detail">28px / 700<br>.t-heading</div></div>
+    </div>
+    <div class="type-row" data-spec="Subheading · 20px · 600">
+      <div class="type-sample-text t-subheading">Subheading / Section Label</div>
+      <div class="type-meta"><span class="type-meta-name">Subheading</span><div class="type-meta-detail">20px / 600<br>.t-subheading</div></div>
+    </div>
+    <div class="type-row" data-spec="Label · 9px mono · uppercase">
+      <div class="type-sample-text t-label">[ System · Label · Metadata ]</div>
+      <div class="type-meta"><span class="type-meta-name">Label</span><div class="type-meta-detail">9px / mono / 0.3em<br>.t-label</div></div>
+    </div>
+    <div class="type-row" data-spec="Body LG · 16px · 300">
+      <div class="type-sample-text t-body-lg" style="max-width:60ch;">A utilitarian design language that turns the functional into the striking. Clean lines, bold color, sharp type.</div>
+      <div class="type-meta"><span class="type-meta-name">Body LG</span><div class="type-meta-detail">16px / 300 / 1.7<br>.t-body-lg</div></div>
+    </div>
+    <div class="type-row" data-spec="Body · 14px · 300">
+      <div class="type-sample-text t-body" style="max-width:60ch;">Secondary body copy sits comfortably at 14px with generous line height, optimized for sustained reading in high-density interfaces.</div>
+      <div class="type-meta"><span class="type-meta-name">Body</span><div class="type-meta-detail">14px / 300<br>.t-body</div></div>
+    </div>
+    <div class="type-row" data-spec="Mono LG · 16px">
+      <div class="type-sample-text t-mono-lg" style="color:var(--c-success);">SYS_STATUS: ONLINE · BUILD 1.0.0 · NODE TAU</div>
+      <div class="type-meta"><span class="type-meta-name">Mono LG</span><div class="type-meta-detail">16px / mono<br>.t-mono-lg</div></div>
+    </div>
+    <div class="type-row" data-spec="Mono SM · 9px · labels">
+      <div class="type-sample-text t-mono-sm" style="color:var(--c-text-muted);">TIMESTAMP · 2026-03-18 · REGION EU-WEST · SESSION 0x8F</div>
+      <div class="type-meta"><span class="type-meta-name">Mono SM</span><div class="type-meta-detail">9px / 0.12em<br>.t-mono-sm</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SPACING ───────────────────────────────────────────── -->
+<section class="ds-section" id="spacing">
+  <div class="section-head">
+    <h2>Spacing</h2>
+    <span class="section-tag">// 4px base unit · 8 steps</span>
+  </div>
+  <div class="spacing-row">
+    <div class="sp-item"><div class="sp-bar" style="height:4px;"></div><div class="sp-key">--sp-1<br>4px</div></div>
+    <div class="sp-item"><div class="sp-bar" style="height:8px;"></div><div class="sp-key">--sp-2<br>8px</div></div>
+    <div class="sp-item"><div class="sp-bar" style="height:12px;"></div><div class="sp-key">--sp-3<br>12px</div></div>
+    <div class="sp-item"><div class="sp-bar" style="height:16px;"></div><div class="sp-key">--sp-4<br>16px</div></div>
+    <div class="sp-item"><div class="sp-bar" style="height:24px;"></div><div class="sp-key">--sp-5<br>24px</div></div>
+    <div class="sp-item"><div class="sp-bar" style="height:32px;"></div><div class="sp-key">--sp-6<br>32px</div></div>
+    <div class="sp-item"><div class="sp-bar" style="height:48px;"></div><div class="sp-key">--sp-7<br>48px</div></div>
+    <div class="sp-item"><div class="sp-bar" style="height:64px;"></div><div class="sp-key">--sp-8<br>64px</div></div>
+    <div class="sp-item"><div class="sp-bar" style="height:96px;"></div><div class="sp-key">--sp-9<br>96px</div></div>
+  </div>
+
+  <div class="ds-label mt-6">12-Column Grid</div>
+  <div class="grid-demo mt-4">
+    <div class="grid-col">1</div><div class="grid-col">2</div><div class="grid-col">3</div><div class="grid-col">4</div>
+    <div class="grid-col">5</div><div class="grid-col">6</div><div class="grid-col">7</div><div class="grid-col">8</div>
+    <div class="grid-col">9</div><div class="grid-col">10</div><div class="grid-col">11</div><div class="grid-col">12</div>
+  </div>
+</section>
+
+<!-- ─── COMPONENTS ───────────────────────────────────────── -->
+<section class="ds-section" id="components">
+  <div class="section-head">
+    <h2>Components</h2>
+    <span class="section-tag">// Buttons · Badges · Inputs · Alerts · Cards · Tables</span>
+  </div>
+
+  <!-- Buttons -->
+  <div class="ds-label">Buttons</div>
+  <div class="card mt-4" style="background:var(--c-surface-1);">
+    <div class="btn-showcase">
+      <button class="btn btn-primary btn-chamfer">Primary Action</button>
+      <button class="btn btn-secondary btn-chamfer">Secondary</button>
+      <button class="btn btn-ghost-cyan">Info / Cyan</button>
+      <button class="btn btn-ghost-yellow">Warning / Yellow</button>
+      <button class="btn btn-danger">Destructive</button>
+    </div>
+    <hr class="rule-sharp" style="margin: var(--sp-4) 0;">
+    <div class="btn-showcase">
+      <button class="btn btn-primary btn-sm btn-chamfer">Small</button>
+      <button class="btn btn-primary btn-chamfer">Default</button>
+      <button class="btn btn-primary btn-lg btn-chamfer">Large</button>
+      <button class="btn btn-secondary btn-icon btn-chamfer">+</button>
+      <button class="btn btn-secondary btn-icon" style="font-size:12px;">→</button>
+    </div>
+  </div>
+
+  <!-- Badges + Tags -->
+  <div class="ds-label mt-6">Badges &amp; Tags</div>
+  <div class="card mt-4" style="background:var(--c-surface-1);">
+    <div class="ds-label" style="margin-bottom:var(--sp-3);">Status Badges</div>
+    <div class="badges-row">
+      <span class="badge badge-primary"><span class="badge-dot" style="background:var(--c-primary);"></span>Critical</span>
+      <span class="badge badge-yellow"><span class="badge-dot" style="background:var(--c-accent-a);"></span>Warning</span>
+      <span class="badge badge-cyan"><span class="badge-dot" style="background:var(--c-accent-b);box-shadow:0 0 4px var(--c-accent-b);"></span>Active</span>
+      <span class="badge badge-success"><span class="badge-dot" style="background:var(--c-success);box-shadow:0 0 4px var(--c-success);"></span>Online</span>
+      <span class="badge badge-special">Special</span>
+      <span class="badge badge-muted">Archived</span>
+    </div>
+    <div class="badges-row" style="margin-top:var(--sp-3);">
+      <span class="badge badge-primary badge-sm">New</span>
+      <span class="badge badge-yellow badge-sm">Pending</span>
+      <span class="badge badge-cyan badge-sm">Live</span>
+      <span class="badge badge-success badge-sm">Verified</span>
+      <span class="badge badge-muted badge-sm">Draft</span>
+    </div>
+    <hr class="rule-sharp" style="margin: var(--sp-4) 0;">
+    <div class="ds-label" style="margin-bottom:var(--sp-3);">Filter Tags</div>
+    <div class="row">
+      <span class="tag active">All</span>
+      <span class="tag">Design</span>
+      <span class="tag">Engineering</span>
+      <span class="tag">Product</span>
+      <span class="tag">Research</span>
+    </div>
+  </div>
+
+  <!-- Inputs -->
+  <div class="ds-label mt-6">Form Controls</div>
+  <div class="grid-2 mt-4">
+    <div class="card" style="background:var(--c-surface-1);">
+      <div class="input-group">
+        <div class="field-wrap">
+          <label class="field-label">Username</label>
+          <input class="field" type="text" placeholder="your_handle">
+        </div>
+        <div class="field-wrap">
+          <label class="field-label">Email Address</label>
+          <input class="field field-success-accent" type="email" value="user@domain.io">
+          <span class="field-hint">✓ looks good</span>
+        </div>
+        <div class="field-wrap">
+          <label class="field-label">Password</label>
+          <input class="field field-error" type="password" placeholder="••••••••">
+          <span class="field-error-msg">Must be 8+ characters</span>
+        </div>
+        <div class="field-wrap">
+          <label class="field-label">Region</label>
+          <select class="field field-select">
+            <option>EU-WEST</option>
+            <option>US-EAST</option>
+            <option>APAC</option>
+          </select>
+        </div>
+        <div class="field-wrap">
+          <label class="field-label">Notes</label>
+          <textarea class="field field-textarea" placeholder="Optional context..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="background:var(--c-surface-1);">
+      <div class="stack">
+        <div class="ds-label" style="margin-bottom:var(--sp-2);">Toggles</div>
+        <div class="toggle-wrap" onclick="this.querySelector('.toggle').classList.toggle('on')">
+          <div class="toggle on"></div>
+          <span class="toggle-label">Notifications enabled</span>
+        </div>
+        <div class="toggle-wrap" onclick="this.querySelector('.toggle').classList.toggle('on')">
+          <div class="toggle"></div>
+          <span class="toggle-label">Dark mode</span>
+        </div>
+        <div class="toggle-wrap" onclick="this.querySelector('.toggle').classList.toggle('on')">
+          <div class="toggle on"></div>
+          <span class="toggle-label">Data sync</span>
+        </div>
+        <hr class="rule-sharp" style="margin: var(--sp-2) 0;">
+        <div class="ds-label" style="margin-bottom:var(--sp-2);">Checkboxes</div>
+        <div class="check-wrap" onclick="this.querySelector('.checkbox').classList.toggle('checked')">
+          <div class="checkbox checked"></div>
+          <span class="check-label">Accept terms of service</span>
+        </div>
+        <div class="check-wrap" onclick="this.querySelector('.checkbox').classList.toggle('checked')">
+          <div class="checkbox"></div>
+          <span class="check-label">Subscribe to updates</span>
+        </div>
+        <div class="check-wrap" onclick="this.querySelector('.checkbox').classList.toggle('checked')">
+          <div class="checkbox checked"></div>
+          <span class="check-label">Enable telemetry</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="ds-label mt-6">Alerts &amp; Notifications</div>
+  <div class="stack mt-4">
+    <div class="alert alert-critical">
+      <div class="alert-icon-col"><span class="alert-icon">CRIT</span></div>
+      <div class="alert-body-col">
+        <div class="alert-title">Authentication Failed</div>
+        <div class="alert-text">Your session has expired or credentials are invalid. Please sign in again to continue.</div>
+      </div>
+      <div class="alert-dismiss">✕</div>
+    </div>
+    <div class="alert alert-warning">
+      <div class="alert-icon-col"><span class="alert-icon">WARN</span></div>
+      <div class="alert-body-col">
+        <div class="alert-title">Storage Limit Approaching</div>
+        <div class="alert-text">You have used 87% of your allocated storage. Upgrade your plan to avoid interruptions.</div>
+      </div>
+      <div class="alert-dismiss">✕</div>
+    </div>
+    <div class="alert alert-info">
+      <div class="alert-icon-col"><span class="alert-icon">INFO</span></div>
+      <div class="alert-body-col">
+        <div class="alert-title">Scheduled Maintenance</div>
+        <div class="alert-text">System maintenance is scheduled for Sunday 02:00–04:00 UTC. Some services may be unavailable.</div>
+      </div>
+      <div class="alert-dismiss">✕</div>
+    </div>
+    <div class="alert alert-success">
+      <div class="alert-icon-col"><span class="alert-icon">OK</span></div>
+      <div class="alert-body-col">
+        <div class="alert-title">Deploy Successful</div>
+        <div class="alert-text">Version 2.4.1 deployed to production. All health checks passed. Zero downtime.</div>
+      </div>
+      <div class="alert-dismiss">✕</div>
+    </div>
+  </div>
+
+  <!-- Cards -->
+  <div class="ds-label mt-6">Card Variants</div>
+  <div class="card-grid mt-4">
+    <div class="card card-accent-top accent-primary card-hover">
+      <div class="card-meta">Feature · Primary</div>
+      <div class="card-title">Chamfered Panel</div>
+      <div class="card-body">Standard card with pink accent top border. Use for primary content blocks, feature highlights, or actionable items.</div>
+    </div>
+    <div class="card card-accent-top accent-yellow card-hover">
+      <div class="card-meta">Feature · Warning</div>
+      <div class="card-title">Status Panel</div>
+      <div class="card-body">Yellow accent communicates caution or warning states while remaining legible in dense interfaces.</div>
+    </div>
+    <div class="card card-accent-top accent-cyan card-hover">
+      <div class="card-meta">Feature · Info</div>
+      <div class="card-title">Info Panel</div>
+      <div class="card-body">Cyan accent for informational or secondary content. Softer read-state, still visually distinct.</div>
+    </div>
+  </div>
+  <div class="card-grid card-grid-2 mt-3">
+    <div class="card card-chamfer card-hover" style="padding: var(--sp-6);">
+      <div class="card-meta">Chamfered Geometry</div>
+      <div class="card-title">Clipped Corner Card</div>
+      <div class="card-body">Clip-path chamfer on all four corners creates the characteristic angled geometry of the design system. Works at any size.</div>
+    </div>
+    <div class="card card-hover" style="border-color: var(--c-primary); background: var(--c-primary-dim);">
+      <div class="card-meta" style="color:var(--c-primary);">Highlighted State</div>
+      <div class="card-title">Active / Selected Card</div>
+      <div class="card-body">Active state uses primary color border with dimmed primary background fill. Clear affordance without heavy saturation.</div>
+    </div>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="ds-label mt-6">Stat Cards</div>
+  <div class="card-grid mt-4">
+    <div class="stat-card accent-primary card-accent-top">
+      <div class="stat-key">Monthly Revenue</div>
+      <div class="stat-value">84.2<span class="stat-unit">k</span></div>
+      <div class="stat-delta delta-pos">↑ 12.4% vs last month</div>
+    </div>
+    <div class="stat-card accent-yellow card-accent-top">
+      <div class="stat-key">Active Users</div>
+      <div class="stat-value">14,320</div>
+      <div class="stat-delta delta-pos">↑ 3.1k this week</div>
+    </div>
+    <div class="stat-card accent-cyan card-accent-top">
+      <div class="stat-key">API Latency</div>
+      <div class="stat-value">24<span class="stat-unit">ms</span></div>
+      <div class="stat-delta delta-neg">↓ P95 degraded</div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="ds-label mt-6">Progress Meters</div>
+  <div class="card mt-4" style="background:var(--c-surface-1);">
+    <div class="progress-stack">
+      <div class="progress-item">
+        <div class="progress-head"><span class="progress-name">CPU Usage</span><span class="progress-pct" style="color:var(--c-primary);">78%</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:78%; background:var(--c-primary);"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-head"><span class="progress-name">Storage</span><span class="progress-pct" style="color:var(--c-accent-a);">54%</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:54%; background:var(--c-accent-a);"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-head"><span class="progress-name">Bandwidth</span><span class="progress-pct" style="color:var(--c-accent-b);">92%</span></div>
+        <div class="progress-track progress-track-thick"><div class="progress-fill" style="width:92%; background:var(--c-accent-b);"></div></div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-head"><span class="progress-name">Uptime</span><span class="progress-pct" style="color:var(--c-success);">100%</span></div>
+        <div class="progress-track progress-track-thick"><div class="progress-fill" style="width:100%; background:var(--c-success);"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="ds-label mt-6">Data Table</div>
+  <div class="card mt-4" style="background:var(--c-surface-1); padding:0; overflow:hidden;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Status</th>
+          <th>Latency</th>
+          <th>Uptime</th>
+          <th>Region</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-label">API Gateway</td>
+          <td><span class="badge badge-success badge-sm">Online</span></td>
+          <td class="td-mono">24ms</td>
+          <td class="td-mono">99.98%</td>
+          <td class="td-mono">EU-WEST</td>
+        </tr>
+        <tr>
+          <td class="td-label">Auth Service</td>
+          <td><span class="badge badge-success badge-sm">Online</span></td>
+          <td class="td-mono">11ms</td>
+          <td class="td-mono">100%</td>
+          <td class="td-mono">US-EAST</td>
+        </tr>
+        <tr>
+          <td class="td-label">Media CDN</td>
+          <td><span class="badge badge-yellow badge-sm">Degraded</span></td>
+          <td class="td-mono">340ms</td>
+          <td class="td-mono">97.4%</td>
+          <td class="td-mono">APAC</td>
+        </tr>
+        <tr>
+          <td class="td-label">Database</td>
+          <td><span class="badge badge-primary badge-sm">Incident</span></td>
+          <td class="td-mono">—</td>
+          <td class="td-mono">91.2%</td>
+          <td class="td-mono">EU-WEST</td>
+        </tr>
+        <tr>
+          <td class="td-label">Analytics</td>
+          <td><span class="badge badge-muted badge-sm">Paused</span></td>
+          <td class="td-mono">—</td>
+          <td class="td-mono">—</td>
+          <td class="td-mono">US-EAST</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ─── PATTERNS ─────────────────────────────────────────── -->
+<section class="ds-section" id="patterns">
+  <div class="section-head">
+    <h2>Patterns</h2>
+    <span class="section-tag">// Nav · Tabs · Callouts · Dividers</span>
+  </div>
+
+  <div class="ds-label">Navigation Bar</div>
+  <div class="nav-demo mt-4">
+    <div class="nav-demo-brand">BRAND</div>
+    <div class="nav-demo-item active">Dashboard</div>
+    <div class="nav-demo-item">Analytics</div>
+    <div class="nav-demo-item">Settings</div>
+    <div class="nav-demo-item">Docs</div>
+    <div class="nav-demo-right">
+      <span class="badge badge-success badge-sm"><span class="badge-dot" style="background:var(--c-success);box-shadow:0 0 4px var(--c-success);"></span>Live</span>
+      <button class="btn btn-primary btn-sm btn-chamfer">Deploy</button>
+    </div>
+  </div>
+
+  <div class="ds-label mt-6">Tab Bar</div>
+  <div class="tab-bar mt-4">
+    <div class="tab-item active">Overview</div>
+    <div class="tab-item">Performance</div>
+    <div class="tab-item">Logs</div>
+    <div class="tab-item">Alerts</div>
+    <div class="tab-item">Config</div>
+  </div>
+  <div class="card" style="background:var(--c-surface-2); border-top:none;">
+    <p class="t-body" style="color:var(--c-text-secondary);">Tab content area — full-width panel below the tab bar. Border-top removed; the tab bar acts as the visual header.</p>
+  </div>
+
+  <div class="ds-label mt-6">Breadcrumb</div>
+  <div class="card mt-4" style="background:var(--c-surface-1); padding: var(--sp-4);">
+    <div class="breadcrumb">
+      <span class="breadcrumb-item">Dashboard</span>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-item">Projects</span>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-item">Alpha-7</span>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-item current">Settings</span>
+    </div>
+  </div>
+
+  <div class="ds-label mt-6">Callout / Tip</div>
+  <div class="stack mt-4">
+    <div class="callout">
+      <div class="callout-icon" style="color:var(--c-primary);">⚡</div>
+      <div class="callout-text"><strong>Pro tip:</strong> Use <code style="font-family:var(--font-mono);color:var(--c-accent-b);font-size:12px;">clip-path: polygon(...)</code> to create chamfered corners on any element — no additional markup required.</div>
+    </div>
+    <div class="callout" style="border-left-color:var(--c-accent-a);">
+      <div class="callout-icon" style="color:var(--c-accent-a);">⚠</div>
+      <div class="callout-text"><strong>Note:</strong> All color tokens are defined as CSS custom properties. Override any token at the <code style="font-family:var(--font-mono);color:var(--c-accent-b);font-size:12px;">:root</code> level to theme the entire system.</div>
+    </div>
+  </div>
+
+  <div class="ds-label mt-6">Dividers</div>
+  <div class="card mt-4 stack" style="background:var(--c-surface-1); gap:var(--sp-5);">
+    <div>
+      <p class="t-mono-sm" style="color:var(--c-text-muted); margin-bottom:var(--sp-3);">.rule-sharp — 1px solid border</p>
+      <hr class="rule-sharp">
+    </div>
+    <div>
+      <p class="t-mono-sm" style="color:var(--c-text-muted); margin-bottom:var(--sp-3);">.rule-fade — gradient fade left</p>
+      <hr class="rule-fade">
+    </div>
+    <div>
+      <p class="t-mono-sm" style="color:var(--c-text-muted); margin-bottom:var(--sp-3);">.rule-double — dual accent gradient</p>
+      <hr class="rule-double">
+    </div>
+  </div>
+</section>
+
+<!-- ─── MOTION ───────────────────────────────────────────── -->
+<section class="ds-section" id="motion">
+  <div class="section-head">
+    <h2>Motion</h2>
+    <span class="section-tag">// 4 primitives · CSS-only</span>
+  </div>
+
+  <div class="motion-grid">
+    <div class="motion-card">
+      <div class="motion-demo-el anim-pulse"></div>
+      <div>
+        <div class="motion-name">Pulse Glow</div>
+        <div class="motion-desc">Border + shadow pulse. Use for live indicators, active states, focus rings.</div>
+      </div>
+    </div>
+    <div class="motion-card">
+      <div class="motion-demo-el anim-flicker"></div>
+      <div>
+        <div class="motion-name">Flicker</div>
+        <div class="motion-desc">Opacity flicker at random interval. Use for error states, unstable signals, loading.</div>
+      </div>
+    </div>
+    <div class="motion-card">
+      <div class="motion-demo-el anim-glow"></div>
+      <div>
+        <div class="motion-name">Glow Cycle</div>
+        <div class="motion-desc">Cyan glow oscillation. Use for scanning states, background ambient effects.</div>
+      </div>
+    </div>
+    <div class="motion-card">
+      <div class="motion-demo-el anim-blink"></div>
+      <div>
+        <div class="motion-name">Blink Border</div>
+        <div class="motion-desc">Step-function border blink. Use for cursor indicators, terminal prompts, timers.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ds-label mt-6">Easing Tokens</div>
+  <div class="card mt-4" style="background:var(--c-surface-1);">
+    <div class="code-block"><span class="tok-comment">/* Motion tokens */</span>
+<span class="tok-key">--ease-out</span>:       <span class="tok-val">cubic-bezier(0.0, 0.0, 0.2, 1)</span>;   <span class="tok-comment">/* entries, reveals */</span>
+<span class="tok-key">--ease-in-out</span>:    <span class="tok-val">cubic-bezier(0.4, 0.0, 0.2, 1)</span>;   <span class="tok-comment">/* shared transitions */</span>
+<span class="tok-key">--dur-fast</span>:        <span class="tok-val">100ms</span>;                              <span class="tok-comment">/* micro-interactions */</span>
+<span class="tok-key">--dur-base</span>:        <span class="tok-val">180ms</span>;                              <span class="tok-comment">/* default transitions */</span>
+<span class="tok-key">--dur-slow</span>:        <span class="tok-val">320ms</span>;                              <span class="tok-comment">/* page-level reveals */</span></div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ───────────────────────────────────────────── -->
+<footer class="ds-footer">
+  <div class="footer-brand">GR / DS</div>
+  <div class="footer-meta">
+    Graphic Realism Design System · v1.0.0<br>
+    Barlow Condensed · Share Tech Mono · Barlow<br>
+    MIT License · CSS Custom Properties
+  </div>
+</footer>
+
+</div><!-- /page-wrap -->
+
+<script>
+/* tab switching demo */
+document.querySelectorAll('.tab-item').forEach(tab => {
+  tab.addEventListener('click', function() {
+    this.closest('.tab-bar').querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+/* nav switching demo */
+document.querySelectorAll('.nav-demo-item').forEach(item => {
+  item.addEventListener('click', function() {
+    this.closest('.nav-demo').querySelectorAll('.nav-demo-item').forEach(n => n.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+/* alert dismiss */
+document.querySelectorAll('.alert-dismiss').forEach(btn => {
+  btn.addEventListener('click', function() {
+    this.closest('.alert').style.opacity = '0';
+    this.closest('.alert').style.transition = 'opacity 0.2s';
+    setTimeout(() => this.closest('.alert').style.display = 'none', 200);
+  });
+});
+</script>
+</body>
+</html>

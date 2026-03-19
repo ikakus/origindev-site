@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QMK Configurator — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<!-- ↓ Single source of truth for all tokens and components -->
+<link rel="stylesheet" id="ds-link" href="default.css">
+<style>
+/* ── DS SHOWCASE SHELL (not part of app styles) ── */
+
+/* nav */
+.ds-nav {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  height: 52px; overflow-x: auto;
+}
+.ds-nav::-webkit-scrollbar { height: 0; }
+.ds-nav-brand {
+  font-family: var(--font-ui); font-weight: 800; font-size: 16px;
+  letter-spacing: -0.5px; color: var(--text);
+  padding: 0 24px; border-right: 1px solid var(--border);
+  white-space: nowrap; flex-shrink: 0;
+}
+.ds-nav-brand span { color: var(--accent); }
+.ds-nav-links { display: flex; flex: 1; }
+.ds-nav-link {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--text3); padding: 0 16px; height: 52px;
+  display: flex; align-items: center;
+  text-decoration: none; white-space: nowrap;
+  border-right: 1px solid var(--border); transition: color 0.15s;
+}
+.ds-nav-link:hover { color: var(--text); }
+.ds-nav-badge { margin-left: auto; margin-right: 20px; font-size: 11px; color: var(--text3); }
+
+/* page layout */
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+.ds-section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+.ds-section:last-child { border-bottom: none; }
+
+/* section header */
+.section-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 32px; }
+.section-head h2 {
+  font-family: var(--font-ui); font-weight: 800; font-size: 28px;
+  letter-spacing: -0.5px; color: var(--text);
+}
+.section-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text3); text-transform: uppercase; }
+
+.ds-label {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.25em;
+  text-transform: uppercase; color: var(--text3);
+  margin-bottom: 12px; margin-top: 24px;
+  display: flex; align-items: center; gap: 10px;
+}
+.ds-label:first-child { margin-top: 0; }
+.ds-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* hero */
+.ds-hero { padding: 80px 0 64px; position: relative; overflow: hidden; }
+.hero-grid-bg {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 100% at 20% 50%, black 0%, transparent 70%);
+  pointer-events: none; opacity: 0.5;
+}
+.ds-hero-eyebrow {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.35em;
+  color: var(--accent); text-transform: uppercase; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 12px;
+}
+.ds-hero-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--accent); display: block; }
+.ds-hero-title {
+  font-family: var(--font-ui); font-weight: 800;
+  font-size: clamp(48px, 8vw, 88px);
+  line-height: 0.9; letter-spacing: -2px; color: var(--text); margin-bottom: 24px;
+}
+.ds-hero-title .stroke { color: transparent; -webkit-text-stroke: 1px var(--border2); }
+.ds-hero-title .hl { color: var(--accent); }
+.ds-hero-desc { font-size: 14px; color: var(--text2); max-width: 52ch; line-height: 1.7; margin-bottom: 32px; }
+.ds-hero-stats { display: flex; gap: 32px; }
+.ds-hero-stat-val { font-family: var(--font-ui); font-weight: 800; font-size: 32px; line-height: 1; color: var(--text); }
+.ds-hero-stat-key { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; color: var(--text3); text-transform: uppercase; margin-top: 4px; }
+.stat-divider { width: 1px; background: var(--border); align-self: stretch; }
+
+/* color swatches */
+.color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.color-swatch { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: transform 0.15s; }
+.color-swatch:hover { transform: translateY(-3px); }
+.swatch-block { height: 72px; }
+.swatch-meta { padding: 8px 10px 7px; background: var(--surface2); border-top: 1px solid var(--border); }
+.swatch-name { font-family: var(--font-ui); font-weight: 700; font-size: 11px; color: var(--text); display: block; }
+.swatch-hex { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-top: 2px; }
+.swatch-var { font-family: var(--font-mono); font-size: 9px; color: var(--text3); opacity: .5; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* typography showcase */
+.type-specimens { display: flex; flex-direction: column; gap: 8px; }
+.type-row {
+  padding: 20px 24px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); display: flex; align-items: baseline; gap: 24px; position: relative;
+}
+.type-row::before {
+  content: attr(data-spec); position: absolute; top: 8px; right: 12px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--text3); opacity: .5;
+}
+.type-sample { flex: 1; }
+.type-meta { flex-shrink: 0; text-align: right; }
+.type-meta-name { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; display: block; }
+.type-meta-detail { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+.font-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+.font-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; }
+.font-card-role { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+.font-card-name { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-bottom: 16px; }
+.font-card-use { font-family: var(--font-mono); font-size: 10px; color: var(--text3); opacity: .6; margin-top: 12px; }
+
+/* spacing showcase */
+.spacing-row {
+  display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap;
+  padding: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+}
+.sp-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.sp-bar { background: var(--accent); opacity: .45; width: 20px; border-radius: 2px; }
+.sp-key { font-family: var(--font-mono); font-size: 10px; color: var(--text3); text-align: center; }
+
+/* row helpers */
+.btn-showcase { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.field-group { display: flex; flex-direction: column; gap: 14px; }
+
+/* section component wrapper (DS only — avoids colliding with app .section) */
+.ui-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 10px; overflow: hidden; }
+.ui-section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none;
+}
+.ui-section-header:hover { background: var(--surface2); }
+.ui-section-title { font-family: var(--font-ui); font-size: 13px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.ui-section-body { padding: 18px; color: var(--text2); font-size: 12px; }
+
+/* matrix showcase */
+.mx-demo { overflow-x: auto; }
+
+/* toast stack */
+.toast-stack { display: flex; flex-direction: column; gap: 8px; }
+
+/* legend */
+.legend-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* danger box (DS-only variant) */
+.danger-box {
+  background: var(--danger)10; border: 1px solid var(--danger)30;
+  border-radius: var(--radius); padding: 10px 12px;
+  font-size: 11px; color: var(--text2); line-height: 1.6; margin-bottom: 8px;
+}
+
+/* btn-accent2 (DS demo only) */
+.btn-accent2 { background: var(--accent2)20; color: var(--accent2); border-color: var(--accent2)60; }
+.btn-accent2:hover { background: var(--accent2)35; }
+
+/* scrollbar demo box */
+.scrollbar-demo {
+  height: 80px; overflow-y: scroll;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px; color: var(--text3); font-size: 11px; line-height: 2.2;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="ds-nav">
+  <div class="ds-nav-brand">QMK<span>.</span>DS</div>
+  <div class="ds-nav-links">
+    <a class="ds-nav-link" href="#colors">Colors</a>
+    <a class="ds-nav-link" href="#typography">Typography</a>
+    <a class="ds-nav-link" href="#spacing">Spacing</a>
+    <a class="ds-nav-link" href="#buttons">Buttons</a>
+    <a class="ds-nav-link" href="#chips">Chips</a>
+    <a class="ds-nav-link" href="#inputs">Inputs</a>
+    <a class="ds-nav-link" href="#navigation">Navigation</a>
+    <a class="ds-nav-link" href="#sections">Sections</a>
+    <a class="ds-nav-link" href="#keys">Keys</a>
+    <a class="ds-nav-link" href="#matrix">Matrix</a>
+    <a class="ds-nav-link" href="#code">Code</a>
+    <a class="ds-nav-link" href="#feedback">Feedback</a>
+    <a class="ds-nav-link" href="#pinout">Pinout</a>
+  </div>
+  <div class="ds-nav-badge">styles.css · v1.0</div>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- HERO -->
+  <section class="ds-section ds-hero" id="hero">
+    <div class="hero-grid-bg"></div>
+    <div class="ds-hero-eyebrow">Design System</div>
+    <div class="ds-hero-title">
+      QMK <span class="hl">Config</span><br>
+      <span class="stroke">UI Language</span>
+    </div>
+    <p class="ds-hero-desc">
+      A complete visual reference for the QMK Configurator interface — colors, typography, components, and interaction patterns. All styles live in <code style="color:var(--accent);font-size:13px">styles.css</code>.
+    </p>
+    <div class="ds-hero-stats">
+      <div>
+        <div class="ds-hero-stat-val" style="color:var(--accent)">9</div>
+        <div class="ds-hero-stat-key">Color tokens</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div>
+        <div class="ds-hero-stat-val">2</div>
+        <div class="ds-hero-stat-key">Typefaces</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div>
+        <div class="ds-hero-stat-val" style="color:var(--accent2)">15+</div>
+        <div class="ds-hero-stat-key">Components</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COLORS -->
+  <section class="ds-section" id="colors">
+    <div class="section-head">
+      <h2>Colors</h2>
+      <span class="section-tag">:root · css custom properties</span>
+    </div>
+
+    <div class="ds-label">Brand accents</div>
+    <div class="color-grid">
+      <div class="color-swatch"><div class="swatch-block" style="background:#5de4c7"></div><div class="swatch-meta"><span class="swatch-name">Accent</span><div class="swatch-hex">#5de4c7</div><div class="swatch-var">--accent</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#7b9ef0"></div><div class="swatch-meta"><span class="swatch-name">Accent 2</span><div class="swatch-hex">#7b9ef0</div><div class="swatch-var">--accent2</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#f0a86b"></div><div class="swatch-meta"><span class="swatch-name">Accent 3</span><div class="swatch-hex">#f0a86b</div><div class="swatch-var">--accent3</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#f06b6b"></div><div class="swatch-meta"><span class="swatch-name">Danger</span><div class="swatch-hex">#f06b6b</div><div class="swatch-var">--danger</div></div></div>
+    </div>
+
+    <div class="ds-label">Surfaces</div>
+    <div class="color-grid">
+      <div class="color-swatch"><div class="swatch-block" style="background:#0d0f14"></div><div class="swatch-meta"><span class="swatch-name">BG</span><div class="swatch-hex">#0d0f14</div><div class="swatch-var">--bg</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#13161e"></div><div class="swatch-meta"><span class="swatch-name">Surface</span><div class="swatch-hex">#13161e</div><div class="swatch-var">--surface</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#1a1e29"></div><div class="swatch-meta"><span class="swatch-name">Surface 2</span><div class="swatch-hex">#1a1e29</div><div class="swatch-var">--surface2</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#222736"></div><div class="swatch-meta"><span class="swatch-name">Surface 3</span><div class="swatch-hex">#222736</div><div class="swatch-var">--surface3</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#2a2f3f"></div><div class="swatch-meta"><span class="swatch-name">Border</span><div class="swatch-hex">#2a2f3f</div><div class="swatch-var">--border</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#363d52"></div><div class="swatch-meta"><span class="swatch-name">Border 2</span><div class="swatch-hex">#363d52</div><div class="swatch-var">--border2</div></div></div>
+    </div>
+
+    <div class="ds-label">Text</div>
+    <div class="color-grid">
+      <div class="color-swatch"><div class="swatch-block" style="background:#e2e8f0"></div><div class="swatch-meta"><span class="swatch-name">Text</span><div class="swatch-hex">#e2e8f0</div><div class="swatch-var">--text</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#94a3b8"></div><div class="swatch-meta"><span class="swatch-name">Text 2</span><div class="swatch-hex">#94a3b8</div><div class="swatch-var">--text2</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#64748b"></div><div class="swatch-meta"><span class="swatch-name">Text 3</span><div class="swatch-hex">#64748b</div><div class="swatch-var">--text3</div></div></div>
+    </div>
+
+    <div class="ds-label">Key surfaces</div>
+    <div class="color-grid">
+      <div class="color-swatch"><div class="swatch-block" style="background:#1e2433"></div><div class="swatch-meta"><span class="swatch-name">Key BG</span><div class="swatch-hex">#1e2433</div><div class="swatch-var">--key-bg</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#2e3649"></div><div class="swatch-meta"><span class="swatch-name">Key Border</span><div class="swatch-hex">#2e3649</div><div class="swatch-var">--key-border</div></div></div>
+      <div class="color-swatch"><div class="swatch-block" style="background:#252d3f"></div><div class="swatch-meta"><span class="swatch-name">Key Hover</span><div class="swatch-hex">#252d3f</div><div class="swatch-var">--key-hover</div></div></div>
+    </div>
+  </section>
+
+  <!-- TYPOGRAPHY -->
+  <section class="ds-section" id="typography">
+    <div class="section-head">
+      <h2>Typography</h2>
+      <span class="section-tag">JetBrains Mono · Syne</span>
+    </div>
+
+    <div class="ds-label">Font pairing</div>
+    <div class="font-card-grid">
+      <div class="font-card">
+        <div class="font-card-role">Monospace · Code · UI labels</div>
+        <div class="font-card-name">JetBrains Mono — var(--font-mono)</div>
+        <div style="font-family:var(--font-mono);font-size:32px;color:var(--accent);line-height:1">ABCDE 12345</div>
+        <div style="font-family:var(--font-mono);font-size:12px;color:var(--text2);margin-top:10px">abcdefghijklmnopqrstuvwxyz 0123456789</div>
+        <div class="font-card-use">body text · labels · code · inputs</div>
+      </div>
+      <div class="font-card">
+        <div class="font-card-role">Display · Headings · Logo</div>
+        <div class="font-card-name">Syne — var(--font-ui)</div>
+        <div style="font-family:var(--font-ui);font-weight:800;font-size:36px;color:var(--text);line-height:1">QMK Config</div>
+        <div style="font-family:var(--font-ui);font-weight:600;font-size:14px;color:var(--text2);margin-top:10px">Panel titles · Nav labels · Section headers</div>
+        <div class="font-card-use">logo · panel titles · nav labels · headings</div>
+      </div>
+    </div>
+
+    <div class="ds-label">Type scale</div>
+    <div class="type-specimens">
+      <div class="type-row" data-spec="font-ui · 800 · 18px">
+        <div class="type-sample" style="font-family:var(--font-ui);font-weight:800;font-size:18px">QMK<span style="color:var(--accent)">.</span>edit</div>
+        <div class="type-meta"><span class="type-meta-name">Logo</span><div class="type-meta-detail">Syne 800 18px</div></div>
+      </div>
+      <div class="type-row" data-spec="font-ui · 700 · 20px">
+        <div class="type-sample" style="font-family:var(--font-ui);font-weight:700;font-size:20px">Panel Title</div>
+        <div class="type-meta"><span class="type-meta-name">Panel Title</span><div class="type-meta-detail">Syne 700 20px</div></div>
+      </div>
+      <div class="type-row" data-spec="font-ui · 700 · 13px">
+        <div class="type-sample" style="font-family:var(--font-ui);font-weight:700;font-size:13px">Section Title — Hardware Config</div>
+        <div class="type-meta"><span class="type-meta-name">Section / Nav</span><div class="type-meta-detail">Syne 700 13px</div></div>
+      </div>
+      <div class="type-row" data-spec="font-mono · 400 · 13px">
+        <div class="type-sample">Body — matrix pins, key labels, form values</div>
+        <div class="type-meta"><span class="type-meta-name">Body</span><div class="type-meta-detail">Mono 400 13px</div></div>
+      </div>
+      <div class="type-row" data-spec="font-mono · 400 · 12px · text2">
+        <div class="type-sample" style="font-size:12px;color:var(--text2)">Secondary — descriptions, hints, metadata</div>
+        <div class="type-meta"><span class="type-meta-name">Secondary</span><div class="type-meta-detail">Mono 400 12px</div></div>
+      </div>
+      <div class="type-row" data-spec="font-mono · 500 · 11px · uppercase · text3">
+        <div class="type-sample" style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3)">FORM LABEL · PIN NUMBER · SECTION TAG</div>
+        <div class="type-meta"><span class="type-meta-name">Label</span><div class="type-meta-detail">Mono 500 11px UC</div></div>
+      </div>
+      <div class="type-row" data-spec="font-mono · 400 · 11px · code-body">
+        <div class="type-sample" style="font-size:11px;color:var(--text2)">keymap[0][0] = KC_ESC;</div>
+        <div class="type-meta"><span class="type-meta-name">Code</span><div class="type-meta-detail">Mono 400 11px</div></div>
+      </div>
+      <div class="type-row" data-spec="font-mono · 400 · 9–10px · text3">
+        <div class="type-sample" style="font-size:10px;color:var(--text3)">chip label · pin number · key legend · 8–9px</div>
+        <div class="type-meta"><span class="type-meta-name">Micro</span><div class="type-meta-detail">Mono 400 9–10px</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPACING -->
+  <section class="ds-section" id="spacing">
+    <div class="section-head">
+      <h2>Spacing</h2>
+      <span class="section-tag">base units · radius</span>
+    </div>
+    <div class="ds-label">Scale</div>
+    <div class="spacing-row">
+      <div class="sp-item"><div class="sp-bar" style="height:4px"></div><div class="sp-key">4</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:6px"></div><div class="sp-key">6</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:8px"></div><div class="sp-key">8</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:10px"></div><div class="sp-key">10</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:12px"></div><div class="sp-key">12</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:14px"></div><div class="sp-key">14</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:16px"></div><div class="sp-key">16</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:18px"></div><div class="sp-key">18</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:20px"></div><div class="sp-key">20</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:24px"></div><div class="sp-key">24</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:28px"></div><div class="sp-key">28</div></div>
+      <div class="sp-item"><div class="sp-bar" style="height:32px"></div><div class="sp-key">32</div></div>
+    </div>
+
+    <div class="ds-label">Border radius</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+      <div style="text-align:center"><div style="width:48px;height:48px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px"></div><div class="sp-key">--radius<br>6px</div></div>
+      <div style="text-align:center"><div style="width:48px;height:48px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:6px"></div><div class="sp-key">--radius-lg<br>10px</div></div>
+      <div style="text-align:center"><div style="width:48px;height:48px;background:var(--surface2);border:1px solid var(--border);border-radius:99px;margin-bottom:6px"></div><div class="sp-key">pill / tab<br>99px</div></div>
+      <div style="text-align:center"><div style="width:48px;height:48px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;margin-bottom:6px"></div><div class="sp-key">key<br>5px</div></div>
+    </div>
+  </section>
+
+  <!-- BUTTONS -->
+  <section class="ds-section" id="buttons">
+    <div class="section-head">
+      <h2>Buttons</h2>
+      <span class="section-tag">.btn</span>
+    </div>
+
+    <div class="ds-label">Variants</div>
+    <div class="btn-showcase" style="margin-bottom:20px">
+      <button class="btn">Default</button>
+      <button class="btn btn-accent">⬇ Save</button>
+      <button class="btn btn-accent2">⟳ Sync</button>
+      <button class="btn btn-danger">✕ Clear</button>
+      <button class="btn" disabled>Disabled</button>
+    </div>
+
+    <div class="ds-label">Sizes</div>
+    <div class="btn-showcase" style="margin-bottom:20px">
+      <button class="btn btn-sm">Small</button>
+      <button class="btn">Default</button>
+      <button class="btn btn-sm btn-accent">⬇ Export</button>
+    </div>
+
+    <div class="ds-label">With icons</div>
+    <div class="btn-showcase">
+      <button class="btn">📂 Open Folder</button>
+      <button class="btn btn-accent">⬇ Export Firmware</button>
+      <button class="btn">+ Add Layer</button>
+      <button class="btn btn-danger">✕ Remove</button>
+    </div>
+  </section>
+
+  <!-- CHIPS -->
+  <section class="ds-section" id="chips">
+    <div class="section-head">
+      <h2>Chips &amp; Badges</h2>
+      <span class="section-tag">.section-badge · .kc-chip · .cat-btn · .pin-chip · .pp-chip</span>
+    </div>
+
+    <div class="ds-label">Section badges</div>
+    <div class="chips-row">
+      <span class="section-badge">default</span>
+      <span class="section-badge file">info.json</span>
+      <span class="section-badge file" style="background:var(--accent2)20;color:var(--accent2)">keymap.c</span>
+      <span class="section-badge" style="background:var(--accent3)20;color:var(--accent3)">3 keys</span>
+      <span class="section-badge" style="background:var(--danger)20;color:var(--danger)">conflict</span>
+    </div>
+
+    <div class="ds-label">Category filter buttons</div>
+    <div class="chips-row">
+      <button class="cat-btn active">Basic</button>
+      <button class="cat-btn">Mods</button>
+      <button class="cat-btn">Layers</button>
+      <button class="cat-btn">Media</button>
+      <button class="cat-btn">Mouse</button>
+      <button class="cat-btn">Custom</button>
+    </div>
+
+    <div class="ds-label">Keycode chips</div>
+    <div class="chips-row">
+      <span class="kc-chip">KC_ESC</span>
+      <span class="kc-chip">KC_A</span>
+      <span class="kc-chip">KC_SPC</span>
+      <span class="kc-chip">KC_LSFT</span>
+      <span class="kc-chip">MO(1)</span>
+      <span class="kc-chip">KC_ENT</span>
+      <span class="kc-chip">KC_BSPC</span>
+      <span class="kc-chip">KC_TAB</span>
+    </div>
+
+    <div class="ds-label">Pin chips</div>
+    <div class="chips-row">
+      <span class="pin-chip">GP0</span>
+      <span class="pin-chip">GP1</span>
+      <span class="pin-chip selected">GP2</span>
+      <span class="pin-chip">GP3</span>
+      <span class="pin-chip selected">GP5</span>
+    </div>
+
+    <div class="ds-label">Pin picker chips (.pp-chip)</div>
+    <div class="chips-row">
+      <span class="pp-chip">GP0</span>
+      <span class="pp-chip used">GP1</span>
+      <span class="pp-chip selected">GP2</span>
+      <span class="pp-chip">GP3</span>
+      <span class="pp-chip used">GP4</span>
+    </div>
+
+    <div class="ds-label">Layer tabs</div>
+    <div class="layer-tabs">
+      <div class="layer-tab active">Layer 0</div>
+      <div class="layer-tab">Layer 1</div>
+      <div class="layer-tab">Layer 2</div>
+      <div class="layer-tab add-layer">+ Add</div>
+    </div>
+  </section>
+
+  <!-- INPUTS -->
+  <section class="ds-section" id="inputs">
+    <div class="section-head">
+      <h2>Form Inputs</h2>
+      <span class="section-tag">input · select · textarea · toggle</span>
+    </div>
+
+    <div class="form-grid-2">
+      <div>
+        <div class="ds-label">Text fields</div>
+        <div class="field-group">
+          <div class="field">
+            <label>Keyboard Name <span class="required">*</span></label>
+            <input type="text" placeholder="my_keyboard">
+          </div>
+          <div class="field">
+            <label>Manufacturer <span class="hint">(optional)</span></label>
+            <input type="text" placeholder="OriginDev">
+          </div>
+          <div class="field">
+            <label>Processor</label>
+            <select><option>RP2040</option><option>atmega32u4</option><option>STM32F411</option></select>
+          </div>
+          <div class="field">
+            <label>Description</label>
+            <textarea placeholder="A custom split keyboard..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="ds-label">Toggles</div>
+        <div class="toggles-grid">
+          <div class="toggle-row">
+            <div class="toggle-label"><strong>Split keyboard</strong><span>Enable split comms</span></div>
+            <div class="toggle on"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><strong>Trackball</strong><span>PMW3360 / PMW3389</span></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><strong>RGB underglow</strong><span>WS2812</span></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-label"><strong>Bootmagic</strong><span>Hold on boot</span></div>
+            <div class="toggle on"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NAVIGATION -->
+  <section class="ds-section" id="navigation">
+    <div class="section-head">
+      <h2>Navigation</h2>
+      <span class="section-tag">.nav-item · sidebar</span>
+    </div>
+    <div style="width:200px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 8px;display:flex;flex-direction:column;gap:2px">
+      <div class="nav-item active"><span class="nav-icon">~</span><span class="nav-label">Home</span></div>
+      <div class="nav-item"><span class="nav-icon">K</span><span class="nav-label">Keymap</span></div>
+      <div class="nav-item"><span class="nav-icon">H</span><span class="nav-label">Hardware</span></div>
+      <div class="nav-item"><span class="nav-icon">T</span><span class="nav-label">Trackball</span></div>
+      <div class="nav-item"><span class="nav-icon">S</span><span class="nav-label">Split</span></div>
+      <div class="nav-item"><span class="nav-icon">F</span><span class="nav-label">Features</span></div>
+      <div class="nav-item"><span class="nav-icon">L</span><span class="nav-label">Layout</span></div>
+      <div class="nav-item"><span class="nav-icon">//</span><span class="nav-label">Preview</span></div>
+    </div>
+  </section>
+
+  <!-- SECTIONS -->
+  <section class="ds-section" id="sections">
+    <div class="section-head">
+      <h2>Section Panels</h2>
+      <span class="section-tag">.section · collapsible</span>
+    </div>
+    <div class="ui-section">
+      <div class="ui-section-header">
+        <div class="ui-section-title">Basic Info <span class="section-badge file">info.json</span></div>
+        <span style="color:var(--text3)">▾</span>
+      </div>
+      <div class="ui-section-body">Keyboard name, manufacturer, USB identifiers, description.</div>
+    </div>
+    <div class="ui-section">
+      <div class="ui-section-header">
+        <div class="ui-section-title">Matrix <span class="section-badge" style="background:var(--accent3)20;color:var(--accent3)">4×12</span></div>
+        <span style="color:var(--text3)">▾</span>
+      </div>
+      <div class="ui-section-body">Row and column pin assignments, diode direction.</div>
+    </div>
+    <div class="ui-section">
+      <div class="ui-section-header" style="background:var(--surface2)">
+        <div class="ui-section-title">Features <span class="section-badge" style="background:var(--accent2)20;color:var(--accent2)">3 active</span></div>
+        <span style="color:var(--text3);transform:rotate(-90deg);display:block">▾</span>
+      </div>
+    </div>
+    <div class="ui-section">
+      <div class="ui-section-header">
+        <div class="ui-section-title">Split <span class="section-badge" style="background:var(--danger)20;color:var(--danger)">conflict</span></div>
+        <span style="color:var(--text3)">▾</span>
+      </div>
+      <div class="ui-section-body">Split serial pin, transport method.</div>
+    </div>
+  </section>
+
+  <!-- KEYS -->
+  <section class="ds-section" id="keys">
+    <div class="section-head">
+      <h2>Key Caps</h2>
+      <span class="section-tag">.key · .keyboard-canvas</span>
+    </div>
+
+    <div class="ds-label">States &amp; widths</div>
+    <div class="keyboard-canvas" style="display:inline-block;margin-bottom:24px">
+      <div class="kb-row">
+        <div class="key"><span class="key-fn">MO</span><span class="key-label">Esc</span></div>
+        <div class="key"><span class="key-label">1 !</span></div>
+        <div class="key"><span class="key-label">2 @</span></div>
+        <div class="key selected"><span class="key-fn">FN</span><span class="key-label">A</span></div>
+        <div class="key"><span class="key-label">S</span></div>
+        <div class="key" style="background:var(--key-hover);border-color:var(--border2);color:var(--text)"><span class="key-label">D hover</span></div>
+      </div>
+      <div class="kb-row">
+        <div class="key wide-2-25"><span class="key-label">Shift 2.25u</span></div>
+        <div class="key"><span class="key-label">Z</span></div>
+        <div class="key wide-2"><span class="key-label">Enter 2u</span></div>
+      </div>
+      <div class="kb-row">
+        <div class="key wide-1-5"><span class="key-label">Tab 1.5u</span></div>
+        <div class="split-gap"></div>
+        <div class="trackball-vis">TB</div>
+        <div class="split-gap"></div>
+        <div class="key wide-6-25"><span class="key-label">Space 6.25u</span></div>
+      </div>
+    </div>
+
+    <div class="ds-label">Conflict states (.lk)</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="lk" style="position:relative;width:60px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <span class="lk-matrix">R0C2</span><span class="lk-label">A</span>
+        <span style="position:absolute;bottom:2px;right:3px;font-size:7px;color:var(--text3);opacity:.4">⠿</span>
+      </div>
+      <div class="lk conflict-dupe" style="position:relative;width:60px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <span class="lk-matrix">R0C2</span><span class="lk-label">B</span>
+      </div>
+      <div class="lk conflict-oob" style="position:relative;width:60px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <span class="lk-matrix">R9C9</span><span class="lk-label">C</span>
+      </div>
+      <div class="lk selected" style="position:relative;width:60px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <span class="lk-matrix">R1C3</span><span class="lk-label">D</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- MATRIX -->
+  <section class="ds-section" id="matrix">
+    <div class="section-head">
+      <h2>Matrix Grid</h2>
+      <span class="section-tag">.mx-cell · .mx-col-header · .mx-row-header</span>
+    </div>
+    <div class="mx-demo">
+      <table class="mx-table">
+        <tr>
+          <td class="mx-corner">R\C</td>
+          <td class="mx-col-header"><span class="col-num">Col 0</span><span class="col-pin">GP6</span></td>
+          <td class="mx-col-header"><span class="col-num">Col 1</span><span class="col-pin">GP7</span></td>
+          <td class="mx-col-header"><span class="col-num">Col 2</span><span class="col-pin">GP8</span></td>
+          <td class="mx-col-header"><span class="col-num">Col 3</span><span class="col-pin unset">unset</span></td>
+        </tr>
+        <tr>
+          <td class="mx-row-header"><span class="row-num">Row 0</span><span class="row-pin">GP2</span></td>
+          <td class="mx-cell"></td><td class="mx-cell"></td>
+          <td class="mx-cell both-hi"></td><td class="mx-cell"></td>
+        </tr>
+        <tr>
+          <td class="mx-row-header"><span class="row-num">Row 1</span><span class="row-pin">GP3</span></td>
+          <td class="mx-cell"></td>
+          <td class="mx-cell both-hi"></td>
+          <td class="mx-cell"></td><td class="mx-cell"></td>
+        </tr>
+        <tr>
+          <td class="mx-row-header conflict"><span class="row-num">Row 2</span><span class="row-pin">conflict</span></td>
+          <td class="mx-cell"></td><td class="mx-cell"></td><td class="mx-cell"></td><td class="mx-cell"></td>
+        </tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- CODE -->
+  <section class="ds-section" id="code">
+    <div class="section-head">
+      <h2>Code Preview</h2>
+      <span class="section-tag">.code-preview · syntax tokens</span>
+    </div>
+    <div class="code-preview">
+      <div class="code-preview-header">
+        <span class="code-preview-title">keymap.c</span>
+        <button class="btn btn-sm">⎘ Copy</button>
+      </div>
+      <div class="code-body"><span class="cmt">// QMK Keymap — generated by QMK Configurator</span>
+<span class="kw">#include</span> <span class="str">QMK_KEYBOARD_H</span>
+
+<span class="kw">const uint16_t</span> PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+  [<span class="num">0</span>] = LAYOUT(
+    <span class="val">KC_ESC</span>,  <span class="val">KC_1</span>,    <span class="val">KC_2</span>,    <span class="val">KC_3</span>,
+    <span class="val">KC_TAB</span>,  <span class="val">KC_Q</span>,    <span class="val">KC_W</span>,    <span class="val">KC_E</span>,
+    <span class="val">KC_LSFT</span>, <span class="val">KC_A</span>,    <span class="val">KC_S</span>,    <span class="val">KC_D</span>,
+    <span class="val">MO</span>(<span class="num">1</span>),    <span class="val">KC_LGUI</span>, <span class="val">KC_LALT</span>, <span class="val">KC_SPC</span>
+  )
+};</div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="ds-label">Syntax tokens</div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px">
+        <div><span style="color:#7b9ef0;font-size:12px">keyword</span> <span style="color:var(--text3);font-size:11px">→ .kw #7b9ef0</span></div>
+        <div><span style="color:#5de4c7;font-size:12px">value/keycode</span> <span style="color:var(--text3);font-size:11px">→ .val #5de4c7</span></div>
+        <div><span style="color:#f0a86b;font-size:12px">string/header</span> <span style="color:var(--text3);font-size:11px">→ .str #f0a86b</span></div>
+        <div><span style="color:#3d4a63;font-size:12px">comment</span> <span style="color:var(--text3);font-size:11px">→ .cmt #3d4a63</span></div>
+        <div><span style="color:#f06b6b;font-size:12px">number/layer</span> <span style="color:var(--text3);font-size:11px">→ .num #f06b6b</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEEDBACK -->
+  <section class="ds-section" id="feedback">
+    <div class="section-head">
+      <h2>Feedback</h2>
+      <span class="section-tag">.toast · .info-box · .warn-box · .file-status</span>
+    </div>
+    <div class="form-grid-2">
+      <div>
+        <div class="ds-label">Toasts</div>
+        <div class="toast-stack">
+          <div class="toast success">✓ <span>Keymap exported successfully</span></div>
+          <div class="toast error">✕ <span>Failed to parse info.json</span></div>
+          <div class="toast" style="border-color:var(--accent3)60">⚠ <span>Matrix has unassigned pins</span></div>
+          <div class="toast"><span>📂 Folder loaded</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="ds-label">Message boxes</div>
+        <div class="info-box">ℹ Pin GP0 is used for split serial. Assigning it to a matrix row may cause conflicts.</div>
+        <div class="warn-box">⚠ Duplicate matrix positions detected in your layout. Check keys at R1C3.</div>
+        <div class="danger-box">✕ GP2 is assigned to both a matrix row and the trackball SCK pin.</div>
+      </div>
+    </div>
+
+    <div class="ds-label">File status</div>
+    <div class="file-status" style="max-width:480px">
+      <div class="file-item"><div class="file-dot ok"></div><div class="file-name">info.json</div><div class="file-path">keyboards/my_kb/</div></div>
+      <div class="file-item"><div class="file-dot ok"></div><div class="file-name">keymap.c</div><div class="file-path">keyboards/my_kb/keymaps/default/</div></div>
+      <div class="file-item"><div class="file-dot missing"></div><div class="file-name">config.h</div><div class="file-path">not yet generated</div></div>
+    </div>
+  </section>
+
+  <!-- PINOUT -->
+  <section class="ds-section" id="pinout">
+    <div class="section-head">
+      <h2>Pinout Legend</h2>
+      <span class="section-tag">.pin-role-* · RP2040</span>
+    </div>
+    <div class="ds-label">Pin role colors</div>
+    <div class="legend-grid">
+      <div class="legend-item"><span class="legend-dot pin-role-free"></span>Free</div>
+      <div class="legend-item"><span class="legend-dot pin-role-matrix-row"></span>Matrix Row</div>
+      <div class="legend-item"><span class="legend-dot pin-role-matrix-col"></span>Matrix Col</div>
+      <div class="legend-item"><span class="legend-dot pin-role-trackball"></span>Trackball</div>
+      <div class="legend-item"><span class="legend-dot pin-role-split"></span>Split</div>
+      <div class="legend-item"><span class="legend-dot pin-role-rgb"></span>RGB</div>
+      <div class="legend-item"><span class="legend-dot pin-role-encoder"></span>Encoder</div>
+      <div class="legend-item"><span class="legend-dot pin-role-power"></span>Power / GND</div>
+      <div class="legend-item"><span class="legend-dot pin-role-conflict"></span>Conflict</div>
+    </div>
+
+    <div class="ds-label">Scrollbar</div>
+    <div class="scrollbar-demo">
+      GP0 · GP1 · GP2 · GP3 · GP4 · GP5 · GP6 · GP7 · GP8 · GP9<br>
+      GP10 · GP11 · GP12 · GP13 · GP14 · GP15 · GP16 · GP17 · GP18 · GP19<br>
+      GP20 · GP21 · GP22 · GP26 · GP27 · GP28 — scroll me ↕<br>
+      GP0 · GP1 · GP2 · GP3 · GP4 · GP5 · GP6 · GP7 · GP8 · GP9
+    </div>
+  </section>
+
+</div><!-- /page-wrap -->
+</body>
+</html>

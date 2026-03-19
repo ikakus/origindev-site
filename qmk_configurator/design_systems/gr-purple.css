@@ -1,0 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
+@import './gr-base.css';
+
+/* ── GR — Purple variant · #7060FF ── */
+:root {
+  --accent: #7060FF;
+}

@@ -4,12 +4,36 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QMK Visual Editor</title>
+<link rel="stylesheet" id="ds-link" href="design_systems/default.css">
 <link rel="stylesheet" href="styles.css">
+<script>
+  (function () {
+    const saved = localStorage.getItem('qmk-ds') || 'default';
+    document.getElementById('ds-link').href = 'design_systems/' + saved + '.css';
+    window.__qmkDS = saved;
+  })();
+</script>
 </head>
 <body>
 
 <header>
-  <div class="logo">QMK<span>.</span>edit</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="logo">QMK<span>.</span>edit</div>
+    <select id="dsPicker" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text2);font-family:var(--font-mono);font-size:11px;padding:4px 8px;cursor:pointer;">
+      <optgroup label="QMK">
+        <option value="default">QMK Default</option>
+        <option value="warm">QMK Warm</option>
+      </optgroup>
+      <optgroup label="GR">
+        <option value="gr-lime">GR Lime</option>
+        <option value="gr-cyan">GR Cyan</option>
+        <option value="gr-yellow">GR Yellow</option>
+        <option value="gr-pink">GR Pink</option>
+        <option value="gr-purple">GR Purple</option>
+        <option value="gr-mint">GR Mint</option>
+      </optgroup>
+    </select>
+  </div>
   <div class="header-actions">
     <div class="folder-badge" id="folderBadge">No folder open</div>
     <button class="btn" id="openFolderBtn">Open QMK Folder</button>
@@ -1044,5 +1068,16 @@
 <script src="js/filesystem.js"></script>
 <script src="js/preview.js"></script>
 <script src="js/main.js"></script>
+<script>
+  (function () {
+    const link = document.getElementById('ds-link');
+    const picker = document.getElementById('dsPicker');
+    picker.value = window.__qmkDS;
+    picker.addEventListener('change', function () {
+      link.href = 'design_systems/' + picker.value + '.css';
+      localStorage.setItem('qmk-ds', picker.value);
+    });
+  })();
+</script>
 </body>
 </html>
