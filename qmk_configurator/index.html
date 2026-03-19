@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QMK Visual Editor</title>
-<link rel="stylesheet" id="ds-link" href="design_systems/default.css">
+<link rel="stylesheet" id="ds-link" href="">
 <link rel="stylesheet" href="styles.css">
 <script>
   (function () {
     const saved = localStorage.getItem('qmk-ds') || 'default';
-    document.getElementById('ds-link').href = 'design_systems/' + saved + '.css';
     window.__qmkDS = saved;
+    document.getElementById('ds-link').href = 'design_systems/' + saved + '.css';
   })();
 </script>
 </head>
