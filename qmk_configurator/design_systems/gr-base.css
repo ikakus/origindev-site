@@ -1,7 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap');
-
 /* ╔══════════════════════════════════════════════════════════╗
-   ║  QMK Configurator — Design System: Graphic Realism       ║
+   ║  QMK Configurator — Design System: GR Base               ║
+   ║  Requires --accent to be declared by the importing file.  ║
    ╚══════════════════════════════════════════════════════════╝ */
 
 /* ── TOKENS ──────────────────────────────────────────────── */
@@ -16,8 +15,7 @@
   --border:    #253040;
   --border2:   #3A5570;
 
-  /* Accents */
-  --accent:    #CCFF33;
+  /* Accents — accent2/3/danger are fixed; --accent set by variant */
   --accent2:   #00EEFF;
   --accent3:   #E8FF00;
   --danger:    #FF2D6B;
